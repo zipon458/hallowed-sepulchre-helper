@@ -11,8 +11,6 @@ import java.awt.Color;
 @ConfigGroup("sepulchre")
 public interface SepulchreConfig extends Config
 {
-	// ==================== SECTIONS ====================
-
 	@ConfigSection(
 		name = "Obstacles",
 		description = "Settings for obstacle highlights",
@@ -21,36 +19,20 @@ public interface SepulchreConfig extends Config
 	String obstacleSection = "obstacles";
 
 	@ConfigSection(
-		name = "Loot",
-		description = "Settings for loot and coffins",
+		name = "Customization",
+		description = "Customize overlay colors and styles",
 		position = 1
-	)
-	String lootSection = "loot";
-
-	@ConfigSection(
-		name = "Colors",
-		description = "Customize overlay colors",
-		position = 2
 	)
 	String colorSection = "colors";
 
-	@ConfigSection(
-		name = "Debug",
-		description = "Debug options for development",
-		position = 3
-	)
-	String debugSection = "debug";
-
-	// ==================== OBSTACLES ====================
-
 	@ConfigItem(
-		keyName = "highlightArrows",
-		name = "Highlight Arrows",
-		description = "Highlight arrow trap danger zones",
+		keyName = "highlightBolts",
+		name = "Highlight Bolts",
+		description = "",
 		section = obstacleSection,
 		position = 0
 	)
-	default boolean highlightArrows()
+	default boolean highlightBolts()
 	{
 		return true;
 	}
@@ -58,7 +40,7 @@ public interface SepulchreConfig extends Config
 	@ConfigItem(
 		keyName = "highlightSwords",
 		name = "Highlight Swords",
-		description = "Highlight sword statue danger zones",
+		description = "",
 		section = obstacleSection,
 		position = 1
 	)
@@ -70,7 +52,7 @@ public interface SepulchreConfig extends Config
 	@ConfigItem(
 		keyName = "highlightWizards",
 		name = "Highlight Wizards",
-		description = "Highlight wizard danger zones",
+		description = "",
 		section = obstacleSection,
 		position = 2
 	)
@@ -82,7 +64,7 @@ public interface SepulchreConfig extends Config
 	@ConfigItem(
 		keyName = "wizardTickCounter",
 		name = "Wizard Tick Counter",
-		description = "Show ticks until wizard attacks",
+		description = "",
 		section = obstacleSection,
 		position = 3
 	)
@@ -94,7 +76,7 @@ public interface SepulchreConfig extends Config
 	@ConfigItem(
 		keyName = "highlightLightning",
 		name = "Highlight Lightning",
-		description = "Highlight lightning strike zones",
+		description = "",
 		section = obstacleSection,
 		position = 4
 	)
@@ -106,7 +88,7 @@ public interface SepulchreConfig extends Config
 	@ConfigItem(
 		keyName = "highlightCrossbows",
 		name = "Highlight Crossbows",
-		description = "Highlight crossbow danger zones",
+		description = "",
 		section = obstacleSection,
 		position = 5
 	)
@@ -118,290 +100,239 @@ public interface SepulchreConfig extends Config
 	@ConfigItem(
 		keyName = "crossbowHighlightStyle",
 		name = "Crossbow Highlight Style",
-		description = "How to highlight crossbow statues",
+		description = "",
 		section = obstacleSection,
 		position = 6
 	)
 	default HighlightStyle crossbowHighlightStyle()
 	{
-		return HighlightStyle.CLICKBOX;
+		return HighlightStyle.TILE;
 	}
 
 	@ConfigItem(
-		keyName = "highlightPortals",
-		name = "Highlight Portals",
-		description = "Highlight floor exit portals",
+		keyName = "highlightYellowPortals",
+		name = "Highlight Yellow Portals",
+		description = "",
 		section = obstacleSection,
 		position = 7
 	)
-	default boolean highlightPortals()
+	default boolean highlightYellowPortals()
 	{
 		return true;
 	}
 
-	// ==================== LOOT ====================
-
 	@ConfigItem(
-		keyName = "highlightCoffins",
-		name = "Highlight Coffins",
-		description = "Highlight lootable coffins",
-		section = lootSection,
-		position = 0
+		keyName = "highlightBluePortals",
+		name = "Highlight Blue Portals",
+		description = "",
+		section = obstacleSection,
+		position = 8
 	)
-	default boolean highlightCoffins()
+	default boolean highlightBluePortals()
 	{
 		return true;
 	}
 
 	@ConfigItem(
-		keyName = "highlightGrandCoffin",
-		name = "Highlight Grand Coffin",
-		description = "Highlight the grand coffin at the end of each floor",
-		section = lootSection,
-		position = 1
-	)
-	default boolean highlightGrandCoffin()
-	{
-		return true;
-	}
-
-	// ==================== COLORS ====================
-
-	@ConfigItem(
-		keyName = "showDangerZones",
-		name = "Show Danger Zones",
-		description = "Show red danger zones (1 tick or less)",
+		keyName = "showFireTiles",
+		name = "Show Fire Tiles",
+		description = "Highlight tiles with fire",
 		section = colorSection,
 		position = 0
 	)
-	default boolean showDangerZones()
+	default boolean showFireTiles()
 	{
 		return true;
 	}
 
-	@Alpha
 	@ConfigItem(
-		keyName = "dangerColor",
-		name = "Danger Color",
-		description = "Color for dangerous areas",
+		keyName = "showFireIncoming",
+		name = "Show Fire Incoming",
+		description = "Highlight tiles with incoming fire",
 		section = colorSection,
 		position = 1
 	)
-	default Color dangerColor()
+	default boolean showFireIncoming()
 	{
-		return new Color(255, 0, 0, 100);
+		return true;
 	}
 
 	@ConfigItem(
-		keyName = "showWarningZones",
-		name = "Show Warning Zones",
-		description = "Show orange warning zones (2-3 ticks)",
+		keyName = "fireBorderOpacity",
+		name = "Fire Border Opacity",
+		description = "",
 		section = colorSection,
 		position = 2
 	)
-	default boolean showWarningZones()
+	default int fireBorderOpacity()
 	{
-		return true;
+		return 100;
 	}
 
-	@Alpha
 	@ConfigItem(
-		keyName = "warningColor",
-		name = "Warning Color",
-		description = "Color for warning areas",
+		keyName = "fireBorderWidth",
+		name = "Fire Border Width",
+		description = "",
 		section = colorSection,
 		position = 3
 	)
-	default Color warningColor()
-	{
-		return new Color(255, 165, 0, 100);
-	}
-
-	@ConfigItem(
-		keyName = "showSafeZones",
-		name = "Show Safe Zones",
-		description = "Show green safe zones (4+ ticks)",
-		section = colorSection,
-		position = 4
-	)
-	default boolean showSafeZones()
-	{
-		return true;
-	}
-
-	@Alpha
-	@ConfigItem(
-		keyName = "safeColor",
-		name = "Safe Color",
-		description = "Color for safe areas",
-		section = colorSection,
-		position = 5
-	)
-	default Color safeColor()
-	{
-		return new Color(0, 255, 0, 100);
-	}
-
-	@Alpha
-	@ConfigItem(
-		keyName = "coffinColor",
-		name = "Coffin Color",
-		description = "Color for coffin highlights",
-		section = colorSection,
-		position = 6
-	)
-	default Color coffinColor()
-	{
-		return new Color(138, 43, 226, 150);
-	}
-
-	@Alpha
-	@ConfigItem(
-		keyName = "portalColor",
-		name = "Portal Color",
-		description = "Color for portal highlights",
-		section = colorSection,
-		position = 7
-	)
-	default Color portalColor()
-	{
-		return new Color(0, 191, 255, 150);
-	}
-
-	@Alpha
-	@ConfigItem(
-		keyName = "crossbowColor",
-		name = "Crossbow Color",
-		description = "Color for crossbow statues when firing",
-		section = colorSection,
-		position = 8
-	)
-	default Color crossbowColor()
-	{
-		return new Color(0, 255, 255, 150);  // Cyan
-	}
-
-	@ConfigItem(
-		keyName = "tileBorderOpacity",
-		name = "Tile Border Opacity",
-		description = "Opacity of tile border outlines (0-255)",
-		section = colorSection,
-		position = 9
-	)
-	default int tileBorderOpacity()
-	{
-		return 255;
-	}
-
-	@ConfigItem(
-		keyName = "tileBorderWidth",
-		name = "Tile Border Width",
-		description = "Width of tile border outlines (1-5)",
-		section = colorSection,
-		position = 10
-	)
-	default int tileBorderWidth()
+	default int fireBorderWidth()
 	{
 		return 1;
 	}
 
 	@Alpha
 	@ConfigItem(
-		keyName = "arrowColor",
-		name = "Arrow Color",
-		description = "Color for arrow projectile highlights",
+		keyName = "fireColor",
+		name = "Fire Color",
+		description = "",
 		section = colorSection,
-		position = 11
+		position = 4
 	)
-	default Color arrowColor()
+	default Color fireColor()
 	{
-		return new Color(255, 255, 0, 150);  // Yellow
+		return new Color(255, 0, 0, 100);
 	}
 
 	@Alpha
 	@ConfigItem(
-		keyName = "swordColor",
-		name = "Sword Color",
-		description = "Color for sword hazard highlights",
+		keyName = "incomingColor",
+		name = "Incoming Color",
+		description = "",
 		section = colorSection,
-		position = 12
+		position = 5
 	)
-	default Color swordColor()
+	default Color incomingColor()
 	{
-		return new Color(255, 0, 255, 150);  // Magenta
+		return new Color(255, 165, 0, 100);
 	}
 
-	// ==================== DEBUG ====================
-
+	@Alpha
 	@ConfigItem(
-		keyName = "showAnimationIds",
-		name = "Show Animation IDs",
-		description = "Display animation IDs above tracked objects for debugging",
-		section = debugSection,
-		position = 0
+		keyName = "boltFillColor",
+		name = "Bolt Fill Color",
+		description = "",
+		section = colorSection,
+		position = 6
 	)
-	default boolean showAnimationIds()
+	default Color boltFillColor()
 	{
-		return false;
+		return new Color(0, 100, 0, 100);
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "boltBorderColor",
+		name = "Bolt Border Color",
+		description = "",
+		section = colorSection,
+		position = 7
+	)
+	default Color boltBorderColor()
+	{
+		return new Color(0, 255, 0, 255);
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "swordFillColor",
+		name = "Sword Fill Color",
+		description = "",
+		section = colorSection,
+		position = 8
+	)
+	default Color swordFillColor()
+	{
+		return new Color(0, 100, 0, 100);
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "swordBorderColor",
+		name = "Sword Border Color",
+		description = "",
+		section = colorSection,
+		position = 9
+	)
+	default Color swordBorderColor()
+	{
+		return new Color(0, 255, 0, 255);
 	}
 
 	@ConfigItem(
-		keyName = "showGraphicsIds",
-		name = "Show Graphics IDs",
-		description = "Display graphics object IDs for debugging (flames, lightning, etc.)",
-		section = debugSection,
-		position = 1
+		keyName = "projectileBorderWidth",
+		name = "Projectile Border Width",
+		description = "",
+		section = colorSection,
+		position = 10
 	)
-	default boolean showGraphicsIds()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "showProjectileIds",
-		name = "Show Projectile IDs",
-		description = "Display projectile IDs for debugging",
-		section = debugSection,
-		position = 2
-	)
-	default boolean showProjectileIds()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "showGameObjectIds",
-		name = "Show Game Object IDs",
-		description = "Display game object IDs for all nearby objects",
-		section = debugSection,
-		position = 3
-	)
-	default boolean showGameObjectIds()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "wizardFireTicks",
-		name = "Wizard Fire Ticks",
-		description = "Number of ticks for wizard fire phase countdown",
-		section = debugSection,
-		position = 4
-	)
-	default int wizardFireTicks()
+	default int projectileBorderWidth()
 	{
 		return 2;
 	}
 
+	@Alpha
 	@ConfigItem(
-		keyName = "wizardSafeTicks",
-		name = "Wizard Safe Ticks",
-		description = "Number of ticks for wizard safe phase countdown",
-		section = debugSection,
-		position = 5
+		keyName = "lightningFillColor",
+		name = "Lightning Fill Color",
+		description = "",
+		section = colorSection,
+		position = 11
 	)
-	default int wizardSafeTicks()
+	default Color lightningFillColor()
 	{
-		return 4;
+		return new Color(255, 255, 255, 100);
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "lightningBorderColor",
+		name = "Lightning Border Color",
+		description = "",
+		section = colorSection,
+		position = 12
+	)
+	default Color lightningBorderColor()
+	{
+		return new Color(255, 255, 255, 255);
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "crossbowColor",
+		name = "Crossbow Color",
+		description = "",
+		section = colorSection,
+		position = 13
+	)
+	default Color crossbowColor()
+	{
+		return new Color(0, 255, 255, 150);
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "portalYellowColor",
+		name = "Yellow Portal Color",
+		description = "",
+		section = colorSection,
+		position = 14
+	)
+	default Color portalYellowColor()
+	{
+		return new Color(255, 255, 0, 0);
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "portalBlueColor",
+		name = "Blue Portal Color",
+		description = "",
+		section = colorSection,
+		position = 15
+	)
+	default Color portalBlueColor()
+	{
+		return new Color(0, 150, 255, 150);
 	}
 }

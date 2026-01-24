@@ -3,9 +3,6 @@ package com.sepulchre.config;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/**
- * Enum for different highlight rendering styles.
- */
 @Getter
 @RequiredArgsConstructor
 public enum HighlightStyle

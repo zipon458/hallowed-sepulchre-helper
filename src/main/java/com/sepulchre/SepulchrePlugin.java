@@ -4,19 +4,17 @@ import com.google.inject.Provides;
 import com.sepulchre.config.SepulchreConfig;
 import com.sepulchre.handler.ObstacleHandler;
 import com.sepulchre.overlay.SepulchreSceneOverlay;
-import com.sepulchre.util.SepulchreConstants;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.GameObjectSpawned;
 import net.runelite.api.events.GameObjectDespawned;
+import net.runelite.api.events.GroundObjectSpawned;
+import net.runelite.api.events.GroundObjectDespawned;
 import net.runelite.api.events.NpcSpawned;
 import net.runelite.api.events.NpcDespawned;
-import net.runelite.api.events.ProjectileMoved;
 import net.runelite.api.events.GraphicsObjectCreated;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -26,10 +24,9 @@ import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
 
-@Slf4j
 @PluginDescriptor(
 	name = "Sepulchre Helper",
-	description = "Assists with the Hallowed Sepulchre minigame",
+	description = "Hallowed Sepulchre helper with more customization",
 	tags = {"sepulchre", "hallowed", "agility", "darkmeyer"}
 )
 public class SepulchrePlugin extends Plugin
@@ -52,21 +49,19 @@ public class SepulchrePlugin extends Plugin
 	@Getter
 	private boolean inSepulchre;
 
-	@Getter
-	private int currentFloor;
+	private boolean detectedSepulchreObjects = false;
 
 	@Override
-	protected void startUp() throws Exception
+	protected void startUp()
 	{
-		log.debug("Hallowed Sepulchre plugin started");
 		overlayManager.add(sceneOverlay);
+		obstacleHandler.setOnSepulchreDetected(this::onSepulchreObjectDetected);
 		reset();
 	}
 
 	@Override
-	protected void shutDown() throws Exception
+	protected void shutDown()
 	{
-		log.debug("Hallowed Sepulchre plugin stopped");
 		overlayManager.remove(sceneOverlay);
 		reset();
 	}
@@ -74,7 +69,7 @@ public class SepulchrePlugin extends Plugin
 	private void reset()
 	{
 		inSepulchre = false;
-		currentFloor = 0;
+		detectedSepulchreObjects = false;
 		obstacleHandler.reset();
 	}
 
@@ -89,9 +84,9 @@ public class SepulchrePlugin extends Plugin
 		}
 		else if (state == GameState.LOADING)
 		{
-			// Scene is being reloaded - clear tracked objects to avoid duplicates
-			// They'll be re-added via GameObjectSpawned events
 			obstacleHandler.reset();
+			detectedSepulchreObjects = false;
+			inSepulchre = false;
 		}
 	}
 
@@ -113,41 +108,27 @@ public class SepulchrePlugin extends Plugin
 
 	private void updateLocation()
 	{
-		WorldPoint playerLocation = client.getLocalPlayer().getWorldLocation();
-		int regionId = playerLocation.getRegionID();
-
-		// Debug: log current region
-		log.debug("Current region: {}", regionId);
-
 		boolean wasInSepulchre = inSepulchre;
-		// TODO: Temporarily always true for debugging - remove this later
-		inSepulchre = true;
-		// inSepulchre = SepulchreConstants.SEPULCHRE_REGIONS.contains(regionId);
+		inSepulchre = detectedSepulchreObjects;
 
-		if (inSepulchre)
-		{
-			currentFloor = determineFloor(regionId);
-		}
-		else if (wasInSepulchre)
+		if (!inSepulchre && wasInSepulchre)
 		{
 			reset();
 		}
 	}
 
-	private int determineFloor(int regionId)
+	public void onSepulchreObjectDetected()
 	{
-		if (SepulchreConstants.FLOOR_1_REGIONS.contains(regionId)) return 1;
-		if (SepulchreConstants.FLOOR_2_REGIONS.contains(regionId)) return 2;
-		if (SepulchreConstants.FLOOR_3_REGIONS.contains(regionId)) return 3;
-		if (SepulchreConstants.FLOOR_4_REGIONS.contains(regionId)) return 4;
-		if (SepulchreConstants.FLOOR_5_REGIONS.contains(regionId)) return 5;
-		return 0;
+		if (!detectedSepulchreObjects)
+		{
+			detectedSepulchreObjects = true;
+			inSepulchre = true;
+		}
 	}
 
 	@Subscribe
 	public void onGameObjectSpawned(GameObjectSpawned event)
 	{
-		if (!inSepulchre) return;
 		obstacleHandler.onGameObjectSpawned(event);
 	}
 
@@ -159,9 +140,22 @@ public class SepulchrePlugin extends Plugin
 	}
 
 	@Subscribe
-	public void onNpcSpawned(NpcSpawned event)
+	public void onGroundObjectSpawned(GroundObjectSpawned event)
 	{
 		if (!inSepulchre) return;
+		obstacleHandler.onGroundObjectSpawned(event);
+	}
+
+	@Subscribe
+	public void onGroundObjectDespawned(GroundObjectDespawned event)
+	{
+		if (!inSepulchre) return;
+		obstacleHandler.onGroundObjectDespawned(event);
+	}
+
+	@Subscribe
+	public void onNpcSpawned(NpcSpawned event)
+	{
 		obstacleHandler.onNpcSpawned(event);
 	}
 
@@ -170,13 +164,6 @@ public class SepulchrePlugin extends Plugin
 	{
 		if (!inSepulchre) return;
 		obstacleHandler.onNpcDespawned(event);
-	}
-
-	@Subscribe
-	public void onProjectileMoved(ProjectileMoved event)
-	{
-		if (!inSepulchre) return;
-		obstacleHandler.onProjectileMoved(event);
 	}
 
 	@Subscribe
@@ -190,15 +177,5 @@ public class SepulchrePlugin extends Plugin
 	SepulchreConfig provideConfig(ConfigManager configManager)
 	{
 		return configManager.getConfig(SepulchreConfig.class);
-	}
-
-	public Client getClient()
-	{
-		return client;
-	}
-
-	public SepulchreConfig getConfig()
-	{
-		return config;
 	}
 }
