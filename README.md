@@ -1,6 +1,6 @@
 # Hallowed Sepulchre Helper
 
-A RuneLite plugin for the Hallowed Sepulchre agility course in Darkmeyer.
+A RuneLite plugin for the Hallowed Sepulchre agility course.
 
 ## Features
 
@@ -18,3 +18,5 @@ All overlays have configurable colors with alpha transparency:
 - Lightning fill/border
 - Crossbowmen and portal colors
 - Border widths and opacity settings
+
+NOTE: Some features (most likely wizards) on floor 5 might be broken. Will fix in a few days when i get 92 agility.
