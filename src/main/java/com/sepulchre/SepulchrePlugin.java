@@ -23,6 +23,10 @@ import net.runelite.api.events.GameObjectSpawned;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.GraphicsObjectCreated;
+import net.runelite.api.events.GroundObjectDespawned;
+import net.runelite.api.events.GroundObjectSpawned;
+import net.runelite.api.events.WallObjectSpawned;
+import net.runelite.api.events.WallObjectDespawned;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.NpcDespawned;
 import net.runelite.api.events.NpcSpawned;
@@ -190,6 +194,7 @@ public class SepulchrePlugin extends Plugin
 				if (location != null)
 				{
 					obstacleHandler.updateLowerSectionStatus(location.getPlane());
+					obstacleHandler.checkBarrierReturns(location);
 				}
 			}
 		}
@@ -281,6 +286,42 @@ public class SepulchrePlugin extends Plugin
 	}
 
 	@Subscribe
+	public void onGroundObjectSpawned(GroundObjectSpawned event)
+	{
+		if (!inSepulchre)
+		{
+			return;
+		}
+		obstacleHandler.onGroundObjectSpawned(event);
+	}
+
+	@Subscribe
+	public void onGroundObjectDespawned(GroundObjectDespawned event)
+	{
+		if (!inSepulchre)
+		{
+			return;
+		}
+		obstacleHandler.onGroundObjectDespawned(event);
+	}
+
+	@Subscribe
+	public void onWallObjectSpawned(WallObjectSpawned event)
+	{
+		obstacleHandler.onWallObjectSpawned(event);
+	}
+
+	@Subscribe
+	public void onWallObjectDespawned(WallObjectDespawned event)
+	{
+		if (!inSepulchre)
+		{
+			return;
+		}
+		obstacleHandler.onWallObjectDespawned(event);
+	}
+
+	@Subscribe
 	public void onNpcSpawned(NpcSpawned event)
 	{
 		obstacleHandler.onNpcSpawned(event);
@@ -340,6 +381,31 @@ public class SepulchrePlugin extends Plugin
 			|| message.contains("You hear the sound of a magical barrier activating"))
 		{
 			obstacleHandler.onDoorToNextFloorClosed();
+		}
+
+		if (message.contains(SepulchreConstants.BRIDGE_CROSSED_MESSAGE))
+		{
+			obstacleHandler.onBridgeCrossed();
+		}
+
+		if (message.contains(SepulchreConstants.GRAPPLE_USED_MESSAGE))
+		{
+			obstacleHandler.onGrappleUsed();
+		}
+
+		if (message.contains(SepulchreConstants.PORTAL_USED_MESSAGE))
+		{
+			obstacleHandler.onPortalUsed();
+		}
+
+		if (message.contains(SepulchreConstants.COFFIN_LOOTED_MESSAGE))
+		{
+			obstacleHandler.onCoffinLooted();
+		}
+
+		if (message.contains(SepulchreConstants.BRAZIER_SACRIFICED_MESSAGE))
+		{
+			obstacleHandler.onBrazierSacrificed();
 		}
 	}
 

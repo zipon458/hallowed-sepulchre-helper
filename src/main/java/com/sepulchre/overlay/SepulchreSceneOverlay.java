@@ -9,13 +9,19 @@ import com.sepulchre.model.CrossbowStatue;
 import com.sepulchre.model.LightningStrike;
 import com.sepulchre.model.SwordStatue;
 import com.sepulchre.model.WizardStatue;
+import com.sepulchre.util.SepulchreConstants;
+import com.sepulchre.util.SkillObstacleRequirements;
 import net.runelite.api.Client;
 import net.runelite.api.GameObject;
+import net.runelite.api.GroundObject;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
+import net.runelite.api.ObjectComposition;
 import net.runelite.api.Perspective;
 import net.runelite.api.Player;
 import net.runelite.api.Point;
+import net.runelite.api.TileObject;
+import net.runelite.api.WallObject;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
@@ -44,6 +50,7 @@ public class SepulchreSceneOverlay extends Overlay
 	private final SepulchreConfig config;
 	private final ObstacleHandler obstacleHandler;
 	private final ModelOutlineRenderer modelOutlineRenderer;
+	private final SkillObstacleRequirements requirements;
 
 	private Stroke cachedFireStroke;
 	private int cachedFireStrokeWidth = -1;
@@ -59,6 +66,12 @@ public class SepulchreSceneOverlay extends Overlay
 	private Color cachedCrossbowBorder;
 	private Color cachedObeliskColor;
 	private Color cachedObeliskBorder;
+	private Color cachedCoffinColor;
+	private Color cachedCoffinBorder;
+	private Color cachedSkillObstacleColor;
+	private Color cachedSkillObstacleBorder;
+	private Color cachedSkillObstacleMissingColor;
+	private Color cachedSkillObstacleMissingBorder;
 	private Color cachedYellowPortalColor;
 	private Color cachedYellowPortalBorder;
 	private Color cachedBluePortalColor;
@@ -66,13 +79,15 @@ public class SepulchreSceneOverlay extends Overlay
 
 	@Inject
 	public SepulchreSceneOverlay(Client client, SepulchrePlugin plugin, SepulchreConfig config,
-		ObstacleHandler obstacleHandler, ModelOutlineRenderer modelOutlineRenderer)
+		ObstacleHandler obstacleHandler, ModelOutlineRenderer modelOutlineRenderer,
+		SkillObstacleRequirements requirements)
 	{
 		this.client = client;
 		this.plugin = plugin;
 		this.config = config;
 		this.obstacleHandler = obstacleHandler;
 		this.modelOutlineRenderer = modelOutlineRenderer;
+		this.requirements = requirements;
 
 		setPosition(OverlayPosition.DYNAMIC);
 		setLayer(OverlayLayer.ABOVE_SCENE);
@@ -97,6 +112,8 @@ public class SepulchreSceneOverlay extends Overlay
 		renderSwordNpcs(graphics, playerPlane);
 		renderPortals(graphics, playerPlane);
 		renderMagicalObelisks(graphics, playerPlane);
+		renderCoffins(graphics, playerPlane);
+		renderSkillObstacles(graphics, playerPlane);
 		renderPlayerImmunity(graphics);
 
 		return null;
@@ -161,6 +178,39 @@ public class SepulchreSceneOverlay extends Overlay
 			cachedObeliskBorder = toOpaque(color);
 		}
 		return cachedObeliskBorder;
+	}
+
+	private Color getCoffinBorderColor()
+	{
+		Color color = config.coffinColor();
+		if (!color.equals(cachedCoffinColor))
+		{
+			cachedCoffinColor = color;
+			cachedCoffinBorder = toOpaque(color);
+		}
+		return cachedCoffinBorder;
+	}
+
+	private Color getSkillObstacleBorderColor()
+	{
+		Color color = config.skillObstacleColor();
+		if (!color.equals(cachedSkillObstacleColor))
+		{
+			cachedSkillObstacleColor = color;
+			cachedSkillObstacleBorder = toOpaque(color);
+		}
+		return cachedSkillObstacleBorder;
+	}
+
+	private Color getSkillObstacleMissingBorderColor()
+	{
+		Color color = config.skillObstacleMissingReqColor();
+		if (!color.equals(cachedSkillObstacleMissingColor))
+		{
+			cachedSkillObstacleMissingColor = color;
+			cachedSkillObstacleMissingBorder = toOpaque(color);
+		}
+		return cachedSkillObstacleMissingBorder;
 	}
 
 	private Color getYellowPortalBorderColor()
@@ -626,5 +676,237 @@ public class SepulchreSceneOverlay extends Overlay
 		{
 			modelOutlineRenderer.drawOutline(player, 4, color, 4);
 		}
+	}
+
+	private void renderCoffins(Graphics2D graphics, int playerPlane)
+	{
+		Color fillColor = config.coffinColor();
+		Color borderColor = getCoffinBorderColor();
+
+		if (obstacleHandler.isCoffinLootingEnabledForCurrentFloor())
+		{
+			for (GameObject coffin : obstacleHandler.getCoffins())
+			{
+				WorldPoint coffinLocation = coffin.getWorldLocation();
+				if (coffinLocation.getPlane() != playerPlane)
+				{
+					continue;
+				}
+
+				if (isObjectInAnyState(coffin, SepulchreConstants.COFFIN_MORPH_OPEN_IDS))
+				{
+					continue;
+				}
+
+				Shape clickbox = coffin.getClickbox();
+				if (clickbox != null)
+				{
+					graphics.setStroke(DEFAULT_STROKE);
+					graphics.setColor(borderColor);
+					graphics.draw(clickbox);
+					graphics.setColor(fillColor);
+					graphics.fill(clickbox);
+				}
+			}
+		}
+
+		if (obstacleHandler.isGrandCoffinLootingEnabled())
+		{
+			for (GameObject grandCoffin : obstacleHandler.getGrandCoffins())
+			{
+				WorldPoint coffinLocation = grandCoffin.getWorldLocation();
+				if (coffinLocation.getPlane() != playerPlane)
+				{
+					continue;
+				}
+
+				if (isObjectInState(grandCoffin, SepulchreConstants.GRAND_COFFIN_MORPH_OPEN))
+				{
+					continue;
+				}
+
+				Shape clickbox = grandCoffin.getClickbox();
+				if (clickbox != null)
+				{
+					graphics.setStroke(DEFAULT_STROKE);
+					graphics.setColor(borderColor);
+					graphics.draw(clickbox);
+					graphics.setColor(fillColor);
+					graphics.fill(clickbox);
+				}
+			}
+
+		boolean doorClosed = obstacleHandler.isDoorToNextFloorClosed();
+			Color barrierFillColor = doorClosed ? config.skillObstacleMissingReqColor() : config.skillObstacleColor();
+			Color barrierBorderColor = doorClosed ? getSkillObstacleMissingBorderColor() : getSkillObstacleBorderColor();
+
+			for (WallObject barrier : obstacleHandler.getFloor5Barriers())
+			{
+				if (barrier.getWorldLocation().getPlane() != playerPlane)
+				{
+					continue;
+				}
+
+				renderTileObject(graphics, barrier, barrierFillColor, barrierBorderColor);
+			}
+		}
+	}
+
+	private void renderSkillObstacles(Graphics2D graphics, int playerPlane)
+	{
+		if (!config.highlightSkillObstacles())
+		{
+			return;
+		}
+
+		if (!obstacleHandler.isCoffinLootingEnabledForCurrentFloor())
+		{
+			return;
+		}
+
+		Color normalFillColor = config.skillObstacleColor();
+		Color normalBorderColor = getSkillObstacleBorderColor();
+		Color missingFillColor = config.skillObstacleMissingReqColor();
+		Color missingBorderColor = getSkillObstacleMissingBorderColor();
+
+		boolean doorClosed = obstacleHandler.isDoorToNextFloorClosed();
+
+		if (config.highlightBridges())
+		{
+			boolean canBuild = !doorClosed && requirements.canBuildBridge();
+			Color fillColor = canBuild ? normalFillColor : missingFillColor;
+			Color borderColor = canBuild ? normalBorderColor : missingBorderColor;
+
+			for (GroundObject bridge : obstacleHandler.getBridges())
+			{
+				if (bridge.getWorldLocation().getPlane() != playerPlane)
+				{
+					continue;
+				}
+
+				if (!obstacleHandler.shouldHighlightObstacle(bridge))
+				{
+					continue;
+				}
+
+				renderTileObject(graphics, bridge, fillColor, borderColor);
+			}
+		}
+
+		if (config.highlightGrapples())
+		{
+			boolean canGrapple = !doorClosed && requirements.canUseGrapple();
+			Color fillColor = canGrapple ? normalFillColor : missingFillColor;
+			Color borderColor = canGrapple ? normalBorderColor : missingBorderColor;
+
+			for (GameObject grapple : obstacleHandler.getGrapples())
+			{
+				if (grapple.getWorldLocation().getPlane() != playerPlane)
+				{
+					continue;
+				}
+
+				if (!obstacleHandler.shouldHighlightObstacle(grapple))
+				{
+					continue;
+				}
+
+				renderTileObject(graphics, grapple, fillColor, borderColor);
+			}
+		}
+
+		if (config.highlightPortalFrames())
+		{
+			boolean canPortal = !doorClosed && requirements.canConjurePortal();
+			Color fillColor = canPortal ? normalFillColor : missingFillColor;
+			Color borderColor = canPortal ? normalBorderColor : missingBorderColor;
+
+			for (GameObject portalFrame : obstacleHandler.getPortalFrames())
+			{
+				if (portalFrame.getWorldLocation().getPlane() != playerPlane)
+				{
+					continue;
+				}
+
+				if (!obstacleHandler.shouldHighlightObstacle(portalFrame))
+				{
+					continue;
+				}
+
+				renderTileObject(graphics, portalFrame, fillColor, borderColor);
+			}
+		}
+
+		if (config.highlightBraziers())
+		{
+			boolean canBrazier = !doorClosed && requirements.canLightBrazier();
+			Color fillColor = canBrazier ? normalFillColor : missingFillColor;
+			Color borderColor = canBrazier ? normalBorderColor : missingBorderColor;
+
+			for (GameObject brazier : obstacleHandler.getBraziers())
+			{
+				if (brazier.getWorldLocation().getPlane() != playerPlane)
+				{
+					continue;
+				}
+
+				if (!isObjectInAnyState(brazier, SepulchreConstants.BRAZIER_UNSACRIFICED_MORPHS))
+				{
+					continue;
+				}
+
+				renderTileObject(graphics, brazier, fillColor, borderColor);
+			}
+
+			for (GameObject barrier : obstacleHandler.getHolyBarriers())
+			{
+				if (barrier.getWorldLocation().getPlane() != playerPlane)
+				{
+					continue;
+				}
+
+				if (!obstacleHandler.shouldHighlightBarrier(barrier))
+				{
+					continue;
+				}
+
+				renderTileObject(graphics, barrier, normalFillColor, normalBorderColor);
+			}
+		}
+	}
+
+	private void renderTileObject(Graphics2D graphics, TileObject tileObject, Color fillColor, Color borderColor)
+	{
+		Shape clickbox = tileObject.getClickbox();
+		if (clickbox != null)
+		{
+			graphics.setStroke(DEFAULT_STROKE);
+			graphics.setColor(borderColor);
+			graphics.draw(clickbox);
+			graphics.setColor(fillColor);
+			graphics.fill(clickbox);
+		}
+	}
+
+	private ObjectComposition getImpostor(GameObject gameObject)
+	{
+		ObjectComposition composition = client.getObjectDefinition(gameObject.getId());
+		if (composition == null || composition.getImpostorIds() == null)
+		{
+			return null;
+		}
+		return composition.getImpostor();
+	}
+
+	private boolean isObjectInState(GameObject gameObject, int morphId)
+	{
+		ObjectComposition impostor = getImpostor(gameObject);
+		return impostor != null && impostor.getId() == morphId;
+	}
+
+	private boolean isObjectInAnyState(GameObject gameObject, java.util.Set<Integer> morphIds)
+	{
+		ObjectComposition impostor = getImpostor(gameObject);
+		return impostor != null && morphIds.contains(impostor.getId());
 	}
 }

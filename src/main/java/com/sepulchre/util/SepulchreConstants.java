@@ -55,6 +55,11 @@ public final class SepulchreConstants
 
 	public static final String FLOOR_1_MESSAGE = "You venture down into the Hallowed Sepulchre";
 	public static final String FLOOR_CHANGE_MESSAGE = "You venture further down into the Hallowed Sepulchre";
+	public static final String BRIDGE_CROSSED_MESSAGE = "You rapidly make your way across the bridge";
+	public static final String GRAPPLE_USED_MESSAGE = "and swing safely to the other side";
+	public static final String PORTAL_USED_MESSAGE = "You pass through the portal and end up on the other side";
+	public static final String BRAZIER_SACRIFICED_MESSAGE = "You see the flame change as your offerings are accepted";
+	public static final String COFFIN_LOOTED_MESSAGE = "You push the coffin lid aside";
 
 	public static final Set<Integer> CROSSBOW_STATUE_IDS = Set.of(38444, 38445, 38446);
 	public static final Set<Integer> CROSSBOW_DANGER_ANIMS = Set.of(8682, 8683, 8684, 8685);
@@ -84,12 +89,22 @@ public final class SepulchreConstants
 		SWORD_STATUE_ANIM_WINDUP_2
 	);
 	public static final Set<Integer> SWORD_NULL_NPC_IDS = Set.of(9669, 9670, 9671);
-
 	public static final int LIGHTNING_GRAPHICS_ID = 1796;
 	public static final Set<Integer> BLUE_PORTAL_GRAPHICS_IDS = Set.of(1799, 1815);
 	public static final Set<Integer> YELLOW_PORTAL_GRAPHICS_IDS = Set.of(1800, 1816);
 	public static final int BLUE_PORTAL_TELEPORT_GRAPHICS_ID = 1803;
 	public static final int YELLOW_PORTAL_TELEPORT_GRAPHICS_ID = 1804;
 
+	public static final Set<Integer> COFFIN_OBJECT_IDS = Set.of(39544, 39545, 39536, 39537, 39538);
+	public static final Set<Integer> COFFIN_MORPH_OPEN_IDS = Set.of(38831, 38833, 38835, 38837);
+	public static final int GRAND_COFFIN_OBJECT_ID = 39539;
+	public static final int GRAND_COFFIN_MORPH_OPEN = 38839;
+	public static final Set<Integer> BRIDGE_OBJECT_IDS = Set.of(39527, 39528);
+	public static final int GRAPPLE_OBJECT_ID = 39524;
+	public static final int PORTAL_FRAME_OBJECT_ID = 39533;
+	public static final Set<Integer> BRAZIER_OBJECT_IDS = Set.of(39525, 39526);
+	public static final Set<Integer> BRAZIER_UNSACRIFICED_MORPHS = Set.of(38798, 38801);
+	public static final int HOLY_BARRIER_OBJECT_ID = 39534;
+	public static final int FLOOR_5_BARRIER_OBJECT_ID = 39540;
 	public static final int MAGICAL_OBELISK_ID = 38451;
 }

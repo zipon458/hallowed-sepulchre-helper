@@ -27,16 +27,23 @@ public interface SepulchreConfig extends Config
 	String OBSTACLE_SECTION = "obstacles";
 
 	@ConfigSection(
+		name = "Coffin Looting",
+		description = "Settings for coffin looting highlights",
+		position = 2
+	)
+	String COFFIN_LOOTING_SECTION = "coffinLooting";
+
+	@ConfigSection(
 		name = "Customization",
 		description = "",
-		position = 2
+		position = 3
 	)
 	String COLOR_SECTION = "colors";
 
 	@ConfigSection(
 		name = "Player",
 		description = "Settings for player highlights",
-		position = 3
+		position = 4
 	)
 	String PLAYER_SECTION = "player";
 
@@ -89,18 +96,6 @@ public interface SepulchreConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "showFloor4CycleOverlay",
-		name = "Floor 4 Wizard Cycle",
-		description = "Show the current cycle (1-5) for the floor 4 wizard obstacle",
-		section = OVERLAY_SECTION,
-		position = 4
-	)
-	default boolean showFloor4CycleOverlay()
-	{
-		return true;
-	}
-
-	@ConfigItem(
 		keyName = "wizardTickCounter",
 		name = "Wizard Tick Counter",
 		description = "Show tick counter for wizard statues",
@@ -135,6 +130,19 @@ public interface SepulchreConfig extends Config
 	{
 		return true;
 	}
+
+	@ConfigItem(
+		keyName = "showFloor4CycleOverlay",
+		name = "Floor 4 Wizard Cycle",
+		description = "Show the current cycle (1-5) for the floor 4 wizard obstacle",
+		section = OVERLAY_SECTION,
+		position = 4
+	)
+	default boolean showFloor4CycleOverlay()
+	{
+		return true;
+	}
+
 
 	@ConfigItem(
 		keyName = "highlightCrossbows",
@@ -218,6 +226,78 @@ public interface SepulchreConfig extends Config
 	default boolean swapObeliskMenuEntry()
 	{
 		return false;
+	}
+
+	@ConfigItem(
+		keyName = "lootingFloors",
+		name = "Looting Floors",
+		description = "Which floors to show coffin looting highlights",
+		section = COFFIN_LOOTING_SECTION,
+		position = 0
+	)
+	default LootingFloor lootingFloors()
+	{
+		return LootingFloor.ALL_FLOORS;
+	}
+
+	@ConfigItem(
+		keyName = "highlightSkillObstacles",
+		name = "Highlight Skill Obstacles",
+		description = "(You should disable this option in Agility plugin)",
+		section = COFFIN_LOOTING_SECTION,
+		position = 1
+	)
+	default boolean highlightSkillObstacles()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "highlightBridges",
+		name = "Highlight Bridges",
+		description = "",
+		section = COFFIN_LOOTING_SECTION,
+		position = 2
+	)
+	default boolean highlightBridges()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "highlightGrapples",
+		name = "Highlight Grapples",
+		description = "",
+		section = COFFIN_LOOTING_SECTION,
+		position = 3
+	)
+	default boolean highlightGrapples()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "highlightPortalFrames",
+		name = "Highlight Portal Frames",
+		description = "",
+		section = COFFIN_LOOTING_SECTION,
+		position = 4
+	)
+	default boolean highlightPortalFrames()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "highlightBraziers",
+		name = "Highlight Braziers",
+		description = "",
+		section = COFFIN_LOOTING_SECTION,
+		position = 5
+	)
+	default boolean highlightBraziers()
+	{
+		return true;
 	}
 
 	@ConfigItem(
@@ -436,6 +516,45 @@ public interface SepulchreConfig extends Config
 		return new Color(255, 0, 255, 100);
 	}
 
+	@Alpha
+	@ConfigItem(
+		keyName = "coffinColor",
+		name = "Coffin Color",
+		description = "",
+		section = COLOR_SECTION,
+		position = 17
+	)
+	default Color coffinColor()
+	{
+		return new Color(138, 43, 226, 150);
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "skillObstacleColor",
+		name = "Skill Obstacle Color",
+		description = "",
+		section = COLOR_SECTION,
+		position = 18
+	)
+	default Color skillObstacleColor()
+	{
+		return new Color(0, 255, 0, 100);
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "skillObstacleMissingReqColor",
+		name = "Missing Requirements Color",
+		description = "Color for skill obstacles when missing required items/levels",
+		section = COLOR_SECTION,
+		position = 19
+	)
+	default Color skillObstacleMissingReqColor()
+	{
+		return new Color(255, 0, 0, 100);
+	}
+
 	@ConfigItem(
 		keyName = "playerImmunityOutline",
 		name = "Player Immunity Outline",
@@ -485,4 +604,6 @@ public interface SepulchreConfig extends Config
 	{
 		return 100;
 	}
+
 }
+
