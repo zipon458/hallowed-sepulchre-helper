@@ -1,11 +1,9 @@
 package com.sepulchre.model;
 
 import lombok.Getter;
-import lombok.Setter;
 import net.runelite.api.coords.WorldPoint;
 
 @Getter
-@Setter
 public class LightningStrike
 {
 	private final WorldPoint location;

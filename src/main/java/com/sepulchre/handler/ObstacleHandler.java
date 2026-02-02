@@ -1,19 +1,23 @@
 package com.sepulchre.handler;
 
+import com.sepulchre.config.SepulchreConfig;
 import com.sepulchre.model.CrossbowStatue;
+import com.sepulchre.model.WizardCyclePhaseTracker;
 import com.sepulchre.model.LightningStrike;
+import com.sepulchre.model.SepulchreRoute;
+import com.sepulchre.model.SwordStatue;
 import com.sepulchre.model.WizardStatue;
+import com.sepulchre.util.GameObjectUtil;
 import com.sepulchre.util.SepulchreConstants;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameObject;
 import net.runelite.api.NPC;
+import net.runelite.api.Player;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.GroundObject;
 import net.runelite.api.events.GameObjectSpawned;
 import net.runelite.api.events.GameObjectDespawned;
-import net.runelite.api.events.GroundObjectSpawned;
-import net.runelite.api.events.GroundObjectDespawned;
 import net.runelite.api.events.NpcSpawned;
 import net.runelite.api.events.NpcDespawned;
 import net.runelite.api.events.GraphicsObjectCreated;
@@ -28,9 +32,11 @@ import java.util.Map;
 import java.util.Set;
 
 @Singleton
+@Slf4j
 public class ObstacleHandler
 {
 	private final Client client;
+	private final SepulchreConfig config;
 
 	private Runnable onSepulchreDetected;
 
@@ -44,13 +50,13 @@ public class ObstacleHandler
 	private final List<WizardStatue> wizardStatues = new ArrayList<>();
 
 	@Getter
+	private final List<SwordStatue> swordStatues = new ArrayList<>();
+
+	@Getter
 	private final Set<NPC> boltNpcs = new HashSet<>();
 
 	@Getter
 	private final Set<NPC> swordNpcs = new HashSet<>();
-
-	private final Set<WorldPoint> yellowPortalTileLocations = new HashSet<>();
-	private final Set<WorldPoint> bluePortalTileLocations = new HashSet<>();
 
 	@Getter
 	private final Set<WorldPoint> activeYellowPortals = new HashSet<>();
@@ -63,10 +69,177 @@ public class ObstacleHandler
 
 	private final Map<WorldPoint, Integer> pendingLightning = new HashMap<>();
 
+	@Getter
+	private final List<GameObject> magicalObelisks = new ArrayList<>();
+
+	@Getter
+	private final WizardCyclePhaseTracker wizardCyclePhaseTracker = new WizardCyclePhaseTracker();
+
+	private final Set<NPC> savedSwordNpcs = new HashSet<>();
+	private final Set<NPC> savedBoltNpcs = new HashSet<>();
+
+	@Getter
+	private int playerImmunityTicks = 0;
+
+	@Getter
+	private boolean doorToNextFloorClosed = false;
+
+	@Getter
+	@lombok.Setter
+	private int currentFloor = 0;
+
+	@Getter
+	@lombok.Setter
+	private SepulchreRoute currentRoute = SepulchreRoute.UNKNOWN;
+
+	@Getter
+	private int floorStartPlane = -1;
+
+	@Getter
+	private boolean inLowerSection = false;
+
+	@Getter
+	private int floorTicks = 0;
+
+	@Getter
+	@lombok.Setter
+	private int runTicks = 0;
+
+	@Getter
+	@lombok.Setter
+	private boolean timerPaused = false;
+
+	@Getter
+	@lombok.Setter
+	private boolean timerStarted = false;
+
 	@Inject
-	public ObstacleHandler(Client client)
+	public ObstacleHandler(Client client, SepulchreConfig config)
 	{
 		this.client = client;
+		this.config = config;
+	}
+
+	public int getPlayerMaxFloor()
+	{
+		int agilityLevel = client.getBoostedSkillLevel(net.runelite.api.Skill.AGILITY);
+		for (int i = SepulchreConstants.FLOOR_AGILITY_REQUIREMENTS.length - 1; i >= 0; i--)
+		{
+			if (agilityLevel >= SepulchreConstants.FLOOR_AGILITY_REQUIREMENTS[i])
+			{
+				return i + 1;
+			}
+		}
+		return 0;
+	}
+
+	public int getBluePortalRemainingTicks(WorldPoint location)
+	{
+		return getPortalRemainingTicks(location, activeBluePortals);
+	}
+
+	public int getYellowPortalRemainingTicks(WorldPoint location)
+	{
+		return getPortalRemainingTicks(location, activeYellowPortals);
+	}
+
+	private int getPortalRemainingTicks(WorldPoint location, Set<WorldPoint> activePortals)
+	{
+		if (!activePortals.contains(location))
+		{
+			return -1;
+		}
+		Integer remaining = activePortalGraphics.get(location);
+		return remaining != null ? remaining : -1;
+	}
+
+	public boolean isPlayerImmune()
+	{
+		if (playerImmunityTicks > 0)
+		{
+			return true;
+		}
+		Player player = client.getLocalPlayer();
+		if (player != null)
+		{
+			return player.hasSpotAnim(SepulchreConstants.BLUE_PORTAL_TELEPORT_GRAPHICS_ID)
+				|| player.hasSpotAnim(SepulchreConstants.YELLOW_PORTAL_TELEPORT_GRAPHICS_ID);
+		}
+		return false;
+	}
+
+	public String getFloor4CycleDisplayText()
+	{
+		return wizardCyclePhaseTracker.getDisplayText();
+	}
+
+	public int getFloor4CurrentCycle()
+	{
+		return wizardCyclePhaseTracker.getCurrentCycle();
+	}
+
+	public void onDoorToNextFloorClosed()
+	{
+		doorToNextFloorClosed = true;
+	}
+
+	public void setFloorStartPlane(int plane)
+	{
+		this.floorStartPlane = plane;
+		this.inLowerSection = false;
+		this.floorTicks = 0;
+		this.timerStarted = false;
+	}
+
+	public void updateLowerSectionStatus(int currentPlane)
+	{
+		if (floorStartPlane >= 0 && currentPlane < floorStartPlane)
+		{
+			inLowerSection = true;
+		}
+	}
+
+	public void restoreFloorState(boolean wasInLowerSection, int previousStartPlane, int previousFloorTicks)
+	{
+		this.inLowerSection = wasInLowerSection;
+		this.floorStartPlane = previousStartPlane;
+		this.floorTicks = previousFloorTicks;
+		if (wasInLowerSection && previousStartPlane < 0)
+		{
+			this.floorStartPlane = 99;
+		}
+	}
+
+	public void saveProjectileNpcs()
+	{
+		savedSwordNpcs.clear();
+		savedSwordNpcs.addAll(swordNpcs);
+		savedBoltNpcs.clear();
+		savedBoltNpcs.addAll(boltNpcs);
+	}
+
+	public void restoreProjectileNpcs()
+	{
+		swordNpcs.addAll(savedSwordNpcs);
+		boltNpcs.addAll(savedBoltNpcs);
+	}
+
+	public void clearSavedProjectileNpcs()
+	{
+		savedSwordNpcs.clear();
+		savedBoltNpcs.clear();
+	}
+
+	public void onFloorEntered(boolean isFirstFloor)
+	{
+		if (isFirstFloor)
+		{
+			currentFloor = 1;
+		}
+		else if (currentFloor > 0 && currentFloor < 5)
+		{
+			currentFloor++;
+		}
 	}
 
 	public void setOnSepulchreDetected(Runnable callback)
@@ -87,18 +260,35 @@ public class ObstacleHandler
 		activeLightning.clear();
 		crossbowStatues.clear();
 		wizardStatues.clear();
+		swordStatues.clear();
 		boltNpcs.clear();
 		swordNpcs.clear();
-		yellowPortalTileLocations.clear();
-		bluePortalTileLocations.clear();
 		activeYellowPortals.clear();
 		activeBluePortals.clear();
 		activePortalGraphics.clear();
 		pendingLightning.clear();
+		magicalObelisks.clear();
+		playerImmunityTicks = 0;
+		doorToNextFloorClosed = false;
+		currentFloor = 0;
+		currentRoute = SepulchreRoute.UNKNOWN;
+		floorStartPlane = -1;
+		inLowerSection = false;
+		floorTicks = 0;
+		runTicks = 0;
+		timerPaused = false;
+		timerStarted = false;
+		wizardCyclePhaseTracker.reset();
 	}
 
 	public void onGameTick()
 	{
+		if (currentFloor > 0 && !timerPaused)
+		{
+			runTicks++;
+			floorTicks++;
+		}
+
 		for (LightningStrike lightning : activeLightning)
 		{
 			lightning.onGameTick();
@@ -106,7 +296,25 @@ public class ObstacleHandler
 
 		for (WizardStatue wizard : wizardStatues)
 		{
+			if (currentFloor == 5)
+			{
+				wizard.setFirePhaseTicks(1);
+			}
+			else
+			{
+				wizard.setFirePhaseTicks(2);
+			}
 			wizard.onGameTick();
+		}
+
+		for (SwordStatue sword : swordStatues)
+		{
+			sword.onGameTick();
+		}
+
+		if (currentFloor == 4)
+		{
+			wizardCyclePhaseTracker.onGameTick(wizardStatues);
 		}
 
 		activeLightning.removeIf(LightningStrike::isExpired);
@@ -134,6 +342,11 @@ public class ObstacleHandler
 			entry.setValue(remaining);
 			return false;
 		});
+
+		if (playerImmunityTicks > 0)
+		{
+			playerImmunityTicks--;
+		}
 	}
 
 	public void onGameObjectSpawned(GameObjectSpawned event)
@@ -170,80 +383,48 @@ public class ObstacleHandler
 				}
 			}
 			WizardStatue wizard = new WizardStatue(gameObject);
-			wizard.setFirePhaseTicks(2);
-			wizard.setSafePhaseTicks(4);
+			wizard.setFirePhaseTicks(currentFloor == 5 ? 1 : 2);
+			wizard.setSafePhaseTicks(1);
 			wizard.setWarningPhaseTicks(2);
 			calculateWizardFlameFireTiles(wizard, gameObject.getOrientation());
 			wizardStatues.add(wizard);
 			return;
 		}
 
-		if (id == SepulchreConstants.PORTAL_YELLOW_ID)
+		if (SepulchreConstants.SWORD_STATUE_IDS.contains(id))
 		{
 			notifySepulchreDetected();
-			yellowPortalTileLocations.add(gameObject.getWorldLocation());
+
+			for (SwordStatue existing : swordStatues)
+			{
+				if (existing.getGameObject() == gameObject)
+				{
+					return;
+				}
+			}
+
+			swordStatues.add(new SwordStatue(gameObject));
 			return;
 		}
 
-		if (id == SepulchreConstants.PORTAL_BLUE_ID)
+		if (id == SepulchreConstants.MAGICAL_OBELISK_ID)
 		{
 			notifySepulchreDetected();
-			bluePortalTileLocations.add(gameObject.getWorldLocation());
+			if (!magicalObelisks.contains(gameObject))
+			{
+				magicalObelisks.add(gameObject);
+			}
 		}
 	}
 
 	public void onGameObjectDespawned(GameObjectDespawned event)
 	{
 		GameObject gameObject = event.getGameObject();
-		WorldPoint location = gameObject.getWorldLocation();
 
 		crossbowStatues.removeIf(statue -> statue.getGameObject() == gameObject);
 		wizardStatues.removeIf(statue -> statue.getGameObject() == gameObject);
-
-		int id = gameObject.getId();
-		if (id == SepulchreConstants.PORTAL_YELLOW_ID)
-		{
-			yellowPortalTileLocations.remove(location);
-			activeYellowPortals.remove(location);
-		}
-		else if (id == SepulchreConstants.PORTAL_BLUE_ID)
-		{
-			bluePortalTileLocations.remove(location);
-			activeBluePortals.remove(location);
-		}
-	}
-
-	public void onGroundObjectSpawned(GroundObjectSpawned event)
-	{
-		GroundObject groundObject = event.getGroundObject();
-		int id = groundObject.getId();
-
-		if (id == SepulchreConstants.PORTAL_YELLOW_ID)
-		{
-			yellowPortalTileLocations.add(groundObject.getWorldLocation());
-		}
-		else if (id == SepulchreConstants.PORTAL_BLUE_ID)
-		{
-			bluePortalTileLocations.add(groundObject.getWorldLocation());
-		}
-	}
-
-	public void onGroundObjectDespawned(GroundObjectDespawned event)
-	{
-		GroundObject groundObject = event.getGroundObject();
-		int id = groundObject.getId();
-		WorldPoint location = groundObject.getWorldLocation();
-
-		if (id == SepulchreConstants.PORTAL_YELLOW_ID)
-		{
-			yellowPortalTileLocations.remove(location);
-			activeYellowPortals.remove(location);
-		}
-		else if (id == SepulchreConstants.PORTAL_BLUE_ID)
-		{
-			bluePortalTileLocations.remove(location);
-			activeBluePortals.remove(location);
-		}
+		swordStatues.removeIf(statue -> statue.getGameObject() == gameObject);
+		magicalObelisks.remove(gameObject);
 	}
 
 	public void onNpcSpawned(NpcSpawned event)
@@ -281,17 +462,27 @@ public class ObstacleHandler
 			return;
 		}
 
-		if (SepulchreConstants.PORTAL_GRAPHICS_IDS.contains(graphicsId))
+		if (SepulchreConstants.YELLOW_PORTAL_GRAPHICS_IDS.contains(graphicsId))
 		{
-			if (yellowPortalTileLocations.contains(location))
+			activeYellowPortals.add(location);
+			activePortalGraphics.put(location, 5);
+		}
+		else if (SepulchreConstants.BLUE_PORTAL_GRAPHICS_IDS.contains(graphicsId))
+		{
+			activeBluePortals.add(location);
+			activePortalGraphics.put(location, 5);
+		}
+
+		if (graphicsId == SepulchreConstants.BLUE_PORTAL_TELEPORT_GRAPHICS_ID
+			|| graphicsId == SepulchreConstants.YELLOW_PORTAL_TELEPORT_GRAPHICS_ID)
+		{
+			if (client.getLocalPlayer() != null)
 			{
-				activeYellowPortals.add(location);
-				activePortalGraphics.put(location, 5);
-			}
-			else if (bluePortalTileLocations.contains(location))
-			{
-				activeBluePortals.add(location);
-				activePortalGraphics.put(location, 5);
+				WorldPoint playerLocation = client.getLocalPlayer().getWorldLocation();
+				if (playerLocation.equals(location))
+				{
+					playerImmunityTicks = 2;
+				}
 			}
 		}
 	}
