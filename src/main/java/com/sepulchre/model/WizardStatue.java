@@ -13,6 +13,8 @@ import java.util.Set;
 @Getter
 public class WizardStatue
 {
+	private static final int ACTIVATION_CHECK_TICKS = 10;
+
 	private final GameObject gameObject;
 	private final Set<WorldPoint> fireTiles = new HashSet<>();
 
@@ -25,17 +27,20 @@ public class WizardStatue
 	@Setter
 	private int tickCounter = -1;
 
-	private boolean wasFiringLastTick = false;
-	private boolean wasWarningLastTick = false;
-
-	private static final int ACTIVATION_CHECK_TICKS = 10;
+	@Setter
+	private int firePhaseTicks = 2;
 
 	@Setter
-	private int firePhaseTicks = 4;
-	@Setter
-	private int safePhaseTicks = 4;
+	private int safePhaseTicks = 1;
+
 	@Setter
 	private int warningPhaseTicks = 2;
+
+	private boolean wasFiringLastTick = false;
+	private boolean wasWarningLastTick = false;
+	private boolean isFirstTick = true;
+
+	private int cachedAnimationId = -1;
 
 	public WizardStatue(GameObject gameObject)
 	{
@@ -47,28 +52,22 @@ public class WizardStatue
 		return hasEverFired || ticksSinceSpawn < ACTIVATION_CHECK_TICKS;
 	}
 
-	private int getAnimationId()
-	{
-		return GameObjectUtil.getAnimationId(gameObject);
-	}
-
 	public boolean isFiring()
 	{
-		return getAnimationId() == SepulchreConstants.WIZARD_ANIM_FIRE;
+		return cachedAnimationId == SepulchreConstants.WIZARD_ANIM_FIRE;
 	}
 
 	public boolean isWarning()
 	{
-		int animId = getAnimationId();
-		return animId == SepulchreConstants.WIZARD_ANIM_WARNING || animId == SepulchreConstants.WIZARD_ANIM_PRE_WARNING;
+		return cachedAnimationId == SepulchreConstants.WIZARD_ANIM_WARNING
+			|| cachedAnimationId == SepulchreConstants.WIZARD_ANIM_PRE_WARNING;
 	}
 
 	public boolean isSafe()
 	{
-		int animId = getAnimationId();
-		return animId != SepulchreConstants.WIZARD_ANIM_FIRE
-			&& animId != SepulchreConstants.WIZARD_ANIM_WARNING
-			&& animId != SepulchreConstants.WIZARD_ANIM_PRE_WARNING;
+		return cachedAnimationId != SepulchreConstants.WIZARD_ANIM_FIRE
+			&& cachedAnimationId != SepulchreConstants.WIZARD_ANIM_WARNING
+			&& cachedAnimationId != SepulchreConstants.WIZARD_ANIM_PRE_WARNING;
 	}
 
 	public void addFireTile(WorldPoint tile)
@@ -83,25 +82,42 @@ public class WizardStatue
 
 	public void onGameTick()
 	{
+		cachedAnimationId = GameObjectUtil.getAnimationId(gameObject);
 		boolean currentlyFiring = isFiring();
 		boolean currentlyWarning = isWarning();
 
-		if (currentlyFiring && !wasFiringLastTick)
+		if (isFirstTick)
 		{
-			tickCounter = firePhaseTicks;
-			hasEverFired = true;
+			isFirstTick = false;
+			if (currentlyFiring || currentlyWarning)
+			{
+				hasEverFired = true;
+			}
 		}
-		else if (currentlyWarning && !wasWarningLastTick && !currentlyFiring)
+		else
 		{
-			tickCounter = warningPhaseTicks;
-		}
-		else if (!currentlyFiring && wasFiringLastTick)
-		{
-			tickCounter = safePhaseTicks;
-		}
-		else if (tickCounter > 0)
-		{
-			tickCounter--;
+			if (currentlyFiring && !wasFiringLastTick)
+			{
+				tickCounter = firePhaseTicks;
+				hasEverFired = true;
+			}
+			else if (currentlyWarning && !wasWarningLastTick && !currentlyFiring)
+			{
+				tickCounter = warningPhaseTicks;
+			}
+			else if (!currentlyFiring && wasFiringLastTick)
+			{
+				tickCounter = safePhaseTicks;
+			}
+			else if (tickCounter > 0)
+			{
+				tickCounter--;
+			}
+
+			if (currentlyFiring || currentlyWarning)
+			{
+				hasEverFired = true;
+			}
 		}
 
 		wasFiringLastTick = currentlyFiring;
@@ -116,10 +132,5 @@ public class WizardStatue
 			return "?";
 		}
 		return String.valueOf(tickCounter);
-	}
-
-	public boolean isSynced()
-	{
-		return tickCounter >= 0;
 	}
 }

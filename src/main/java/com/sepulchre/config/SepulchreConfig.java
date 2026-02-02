@@ -5,6 +5,7 @@ import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.ConfigSection;
+import net.runelite.client.config.Range;
 
 import java.awt.Color;
 
@@ -12,51 +13,89 @@ import java.awt.Color;
 public interface SepulchreConfig extends Config
 {
 	@ConfigSection(
-		name = "Obstacles",
-		description = "Settings for obstacle highlights",
+		name = "Overlay",
+		description = "Settings for overlay",
 		position = 0
 	)
-	String obstacleSection = "obstacles";
+	String OVERLAY_SECTION = "overlay";
+
+	@ConfigSection(
+		name = "Obstacles",
+		description = "Settings for obstacle highlights",
+		position = 1
+	)
+	String OBSTACLE_SECTION = "obstacles";
 
 	@ConfigSection(
 		name = "Customization",
-		description = "Customize overlay colors and styles",
-		position = 1
-	)
-	String colorSection = "colors";
-
-	@ConfigItem(
-		keyName = "highlightBolts",
-		name = "Highlight Bolts",
 		description = "",
-		section = obstacleSection,
-		position = 0
-	)
-	default boolean highlightBolts()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "highlightSwords",
-		name = "Highlight Swords",
-		description = "",
-		section = obstacleSection,
-		position = 1
-	)
-	default boolean highlightSwords()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "highlightWizards",
-		name = "Highlight Wizards",
-		description = "",
-		section = obstacleSection,
 		position = 2
 	)
-	default boolean highlightWizards()
+	String COLOR_SECTION = "colors";
+
+	@ConfigSection(
+		name = "Player",
+		description = "Settings for player highlights",
+		position = 3
+	)
+	String PLAYER_SECTION = "player";
+
+	@ConfigItem(
+		keyName = "showInfoPanel",
+		name = "Show Info Panel",
+		description = "",
+		section = OVERLAY_SECTION,
+		position = 0
+	)
+	default boolean showInfoPanel()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "showFloorTimer",
+		name = "Show Timer",
+		description = "",
+		section = OVERLAY_SECTION,
+		position = 1
+	)
+	default boolean showFloorTimer()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "showTickPerfectTime",
+		name = "Show Tick Perfect",
+		description = "Show the tick perfect time(s) for the current route",
+		section = OVERLAY_SECTION,
+		position = 2
+	)
+	default boolean showTickPerfectTime()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "showRunTimer",
+		name = "Show Overall Timer",
+		description = "",
+		section = OVERLAY_SECTION,
+		position = 3
+	)
+	default boolean showRunTimer()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "showFloor4CycleOverlay",
+		name = "Floor 4 Wizard Cycle",
+		description = "Show the current cycle (1-5) for the floor 4 wizard obstacle",
+		section = OVERLAY_SECTION,
+		position = 4
+	)
+	default boolean showFloor4CycleOverlay()
 	{
 		return true;
 	}
@@ -64,9 +103,9 @@ public interface SepulchreConfig extends Config
 	@ConfigItem(
 		keyName = "wizardTickCounter",
 		name = "Wizard Tick Counter",
-		description = "",
-		section = obstacleSection,
-		position = 3
+		description = "Show tick counter for wizard statues",
+		section = OBSTACLE_SECTION,
+		position = 0
 	)
 	default boolean wizardTickCounter()
 	{
@@ -74,23 +113,35 @@ public interface SepulchreConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "highlightLightning",
-		name = "Highlight Lightning",
-		description = "",
-		section = obstacleSection,
-		position = 4
+		keyName = "knightTickCounter",
+		name = "Knight Tick Counter",
+		description = "Show tick counter for knight statues",
+		section = OBSTACLE_SECTION,
+		position = 1
 	)
-	default boolean highlightLightning()
+	default boolean knightTickCounter()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "highlightProjectiles",
+		name = "Highlight Projectiles",
+		description = "Highlight crossbow bolts and knight swords (You should disable this option in Agility plugin)",
+		section = OBSTACLE_SECTION,
+		position = 2
+	)
+	default boolean highlightProjectiles()
 	{
 		return true;
 	}
 
 	@ConfigItem(
 		keyName = "highlightCrossbows",
-		name = "Highlight Crossbows",
+		name = "Highlight Crossbowmen",
 		description = "",
-		section = obstacleSection,
-		position = 5
+		section = OBSTACLE_SECTION,
+		position = 3
 	)
 	default boolean highlightCrossbows()
 	{
@@ -99,110 +150,146 @@ public interface SepulchreConfig extends Config
 
 	@ConfigItem(
 		keyName = "crossbowHighlightStyle",
-		name = "Crossbow Highlight Style",
+		name = "Crossbowmen Style",
 		description = "",
-		section = obstacleSection,
-		position = 6
+		section = OBSTACLE_SECTION,
+		position = 4
 	)
 	default HighlightStyle crossbowHighlightStyle()
 	{
-		return HighlightStyle.TILE;
+		return HighlightStyle.CLICKBOX;
 	}
 
 	@ConfigItem(
-		keyName = "highlightYellowPortals",
+		keyName = "yellowPortalDisplay",
 		name = "Highlight Yellow Portals",
 		description = "",
-		section = obstacleSection,
-		position = 7
+		section = OBSTACLE_SECTION,
+		position = 5
 	)
-	default boolean highlightYellowPortals()
+	default PortalDisplayMode yellowPortalDisplay()
 	{
-		return true;
+		return PortalDisplayMode.BOTH;
 	}
 
 	@ConfigItem(
-		keyName = "highlightBluePortals",
+		keyName = "bluePortalDisplay",
 		name = "Highlight Blue Portals",
 		description = "",
-		section = obstacleSection,
+		section = OBSTACLE_SECTION,
+		position = 6
+	)
+	default PortalDisplayMode bluePortalDisplay()
+	{
+		return PortalDisplayMode.BOTH;
+	}
+
+	@ConfigItem(
+		keyName = "highlightLightning",
+		name = "Highlight Lightning",
+		description = "",
+		section = OBSTACLE_SECTION,
+		position = 7
+	)
+	default boolean highlightLightning()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "highlightObelisk",
+		name = "Highlight Last Eligible Obelisk",
+		description = "Highlight the obelisk on your last eligible floor or when door closes",
+		section = OBSTACLE_SECTION,
 		position = 8
 	)
-	default boolean highlightBluePortals()
+	default boolean highlightObelisk()
 	{
 		return true;
 	}
 
 	@ConfigItem(
-		keyName = "showFireTiles",
-		name = "Show Fire Tiles",
-		description = "Highlight tiles with fire",
-		section = colorSection,
+		keyName = "swapObeliskMenuEntry",
+		name = "Swap Obelisk Menu Entry",
+		description = "Swap 'Activate' with 'Quick-exit' on highlighted obelisk",
+		section = OBSTACLE_SECTION,
+		position = 9
+	)
+	default boolean swapObeliskMenuEntry()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "showDanger",
+		name = "Show Danger",
+		description = "Highlight tiles that are currently dangerous",
+		section = COLOR_SECTION,
 		position = 0
 	)
-	default boolean showFireTiles()
+	default boolean showDanger()
 	{
 		return true;
 	}
 
 	@ConfigItem(
-		keyName = "showFireIncoming",
-		name = "Show Fire Incoming",
-		description = "Highlight tiles with incoming fire",
-		section = colorSection,
+		keyName = "showWarning",
+		name = "Show Warning",
+		description = "Highlight tiles with incoming danger",
+		section = COLOR_SECTION,
 		position = 1
 	)
-	default boolean showFireIncoming()
+	default boolean showWarning()
 	{
 		return true;
 	}
 
 	@ConfigItem(
-		keyName = "fireBorderOpacity",
-		name = "Fire Border Opacity",
+		keyName = "dangerBorderOpacity",
+		name = "Border Opacity",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 2
 	)
-	default int fireBorderOpacity()
+	default int dangerBorderOpacity()
 	{
 		return 100;
 	}
 
 	@ConfigItem(
-		keyName = "fireBorderWidth",
-		name = "Fire Border Width",
+		keyName = "dangerBorderWidth",
+		name = "Border Width",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 3
 	)
-	default int fireBorderWidth()
+	default int dangerBorderWidth()
 	{
 		return 1;
 	}
 
 	@Alpha
 	@ConfigItem(
-		keyName = "fireColor",
-		name = "Fire Color",
+		keyName = "dangerColor",
+		name = "Danger Color",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 4
 	)
-	default Color fireColor()
+	default Color dangerColor()
 	{
 		return new Color(255, 0, 0, 100);
 	}
 
 	@Alpha
 	@ConfigItem(
-		keyName = "incomingColor",
-		name = "Incoming Color",
+		keyName = "warningColor",
+		name = "Warning Color",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 5
 	)
-	default Color incomingColor()
+	default Color warningColor()
 	{
 		return new Color(255, 165, 0, 100);
 	}
@@ -212,12 +299,12 @@ public interface SepulchreConfig extends Config
 		keyName = "boltFillColor",
 		name = "Bolt Fill Color",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 6
 	)
 	default Color boltFillColor()
 	{
-		return new Color(0, 100, 0, 100);
+		return new Color(0, 255, 255, 100);
 	}
 
 	@Alpha
@@ -225,20 +312,20 @@ public interface SepulchreConfig extends Config
 		keyName = "boltBorderColor",
 		name = "Bolt Border Color",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 7
 	)
 	default Color boltBorderColor()
 	{
-		return new Color(0, 255, 0, 255);
+		return new Color(0, 255, 255, 255);
 	}
 
 	@Alpha
 	@ConfigItem(
 		keyName = "swordFillColor",
-		name = "Sword Fill Color",
+		name = "Sword Projectile Fill Color",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 8
 	)
 	default Color swordFillColor()
@@ -249,9 +336,9 @@ public interface SepulchreConfig extends Config
 	@Alpha
 	@ConfigItem(
 		keyName = "swordBorderColor",
-		name = "Sword Border Color",
+		name = "Sword Projectile Border Color",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 9
 	)
 	default Color swordBorderColor()
@@ -263,7 +350,7 @@ public interface SepulchreConfig extends Config
 		keyName = "projectileBorderWidth",
 		name = "Projectile Border Width",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 10
 	)
 	default int projectileBorderWidth()
@@ -276,7 +363,7 @@ public interface SepulchreConfig extends Config
 		keyName = "lightningFillColor",
 		name = "Lightning Fill Color",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 11
 	)
 	default Color lightningFillColor()
@@ -289,7 +376,7 @@ public interface SepulchreConfig extends Config
 		keyName = "lightningBorderColor",
 		name = "Lightning Border Color",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 12
 	)
 	default Color lightningBorderColor()
@@ -302,7 +389,7 @@ public interface SepulchreConfig extends Config
 		keyName = "crossbowColor",
 		name = "Crossbow Color",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 13
 	)
 	default Color crossbowColor()
@@ -315,12 +402,12 @@ public interface SepulchreConfig extends Config
 		keyName = "portalYellowColor",
 		name = "Yellow Portal Color",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 14
 	)
 	default Color portalYellowColor()
 	{
-		return new Color(255, 255, 0, 0);
+		return new Color(255, 255, 0, 100);
 	}
 
 	@Alpha
@@ -328,11 +415,74 @@ public interface SepulchreConfig extends Config
 		keyName = "portalBlueColor",
 		name = "Blue Portal Color",
 		description = "",
-		section = colorSection,
+		section = COLOR_SECTION,
 		position = 15
 	)
 	default Color portalBlueColor()
 	{
 		return new Color(0, 150, 255, 150);
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "obeliskColor",
+		name = "Obelisk Color",
+		description = "",
+		section = COLOR_SECTION,
+		position = 16
+	)
+	default Color obeliskColor()
+	{
+		return new Color(255, 0, 255, 100);
+	}
+
+	@ConfigItem(
+		keyName = "playerImmunityOutline",
+		name = "Player Immunity Outline",
+		description = "Show outline on player when immune after blue portal teleport",
+		section = PLAYER_SECTION,
+		position = 0
+	)
+	default boolean playerImmunityOutline()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "playerImmunityFill",
+		name = "Player Immunity Fill",
+		description = "Fill the player model with color during immunity",
+		section = PLAYER_SECTION,
+		position = 1
+	)
+	default boolean playerImmunityFill()
+	{
+		return true;
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "playerImmunityColor",
+		name = "Player Immunity Color",
+		description = "",
+		section = PLAYER_SECTION,
+		position = 2
+	)
+	default Color playerImmunityColor()
+	{
+		return new Color(0, 150, 255, 255);
+	}
+
+	@Range(max = 255)
+	@ConfigItem(
+		keyName = "playerImmunityFillOpacity",
+		name = "Fill Opacity",
+		description = "",
+		section = PLAYER_SECTION,
+		position = 3
+	)
+	default int playerImmunityFillOpacity()
+	{
+		return 100;
 	}
 }
