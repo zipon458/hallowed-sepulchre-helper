@@ -1,6 +1,7 @@
 package com.sepulchre.handler;
 
 import com.sepulchre.config.SepulchreConfig;
+import com.sepulchre.model.SkillObstacleTracker;
 import com.sepulchre.model.CrossbowStatue;
 import com.sepulchre.model.WizardCyclePhaseTracker;
 import com.sepulchre.model.LightningStrike;
@@ -13,11 +14,18 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameObject;
+import net.runelite.api.GroundObject;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
+import net.runelite.api.TileObject;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.WallObject;
 import net.runelite.api.events.GameObjectSpawned;
 import net.runelite.api.events.GameObjectDespawned;
+import net.runelite.api.events.GroundObjectSpawned;
+import net.runelite.api.events.GroundObjectDespawned;
+import net.runelite.api.events.WallObjectSpawned;
+import net.runelite.api.events.WallObjectDespawned;
 import net.runelite.api.events.NpcSpawned;
 import net.runelite.api.events.NpcDespawned;
 import net.runelite.api.events.GraphicsObjectCreated;
@@ -73,6 +81,32 @@ public class ObstacleHandler
 	private final List<GameObject> magicalObelisks = new ArrayList<>();
 
 	@Getter
+	private final List<GameObject> coffins = new ArrayList<>();
+
+	@Getter
+	private final List<GameObject> grandCoffins = new ArrayList<>();
+
+	@Getter
+	private final List<GroundObject> bridges = new ArrayList<>();
+
+	@Getter
+	private final List<GameObject> grapples = new ArrayList<>();
+
+	@Getter
+	private final List<GameObject> portalFrames = new ArrayList<>();
+
+	@Getter
+	private final List<GameObject> braziers = new ArrayList<>();
+
+	@Getter
+	private final List<GameObject> holyBarriers = new ArrayList<>();
+
+	@Getter
+	private final List<WallObject> floor5Barriers = new ArrayList<>();
+
+	private final Map<WorldPoint, SkillObstacleTracker> skillObstacleTrackers = new HashMap<>();
+
+	@Getter
 	private final WizardCyclePhaseTracker wizardCyclePhaseTracker = new WizardCyclePhaseTracker();
 
 	private final Set<NPC> savedSwordNpcs = new HashSet<>();
@@ -118,6 +152,16 @@ public class ObstacleHandler
 	{
 		this.client = client;
 		this.config = config;
+	}
+
+	public boolean isCoffinLootingEnabledForCurrentFloor()
+	{
+		return config.lootingFloors().includesFloor(currentFloor);
+	}
+
+	public boolean isGrandCoffinLootingEnabled()
+	{
+		return config.lootingFloors().includesGrandCoffin();
 	}
 
 	public int getPlayerMaxFloor()
@@ -268,6 +312,15 @@ public class ObstacleHandler
 		activePortalGraphics.clear();
 		pendingLightning.clear();
 		magicalObelisks.clear();
+		coffins.clear();
+		grandCoffins.clear();
+		bridges.clear();
+		grapples.clear();
+		portalFrames.clear();
+		braziers.clear();
+		holyBarriers.clear();
+		floor5Barriers.clear();
+		skillObstacleTrackers.clear();
 		playerImmunityTicks = 0;
 		doorToNextFloorClosed = false;
 		currentFloor = 0;
@@ -414,6 +467,69 @@ public class ObstacleHandler
 			{
 				magicalObelisks.add(gameObject);
 			}
+			return;
+		}
+
+		if (SepulchreConstants.COFFIN_OBJECT_IDS.contains(id))
+		{
+			notifySepulchreDetected();
+			if (!coffins.contains(gameObject))
+			{
+				coffins.add(gameObject);
+				createCoffinTracker(gameObject);
+			}
+			return;
+		}
+
+		if (id == SepulchreConstants.GRAND_COFFIN_OBJECT_ID)
+		{
+			notifySepulchreDetected();
+			if (!grandCoffins.contains(gameObject))
+			{
+				grandCoffins.add(gameObject);
+			}
+			return;
+		}
+
+		if (id == SepulchreConstants.GRAPPLE_OBJECT_ID)
+		{
+			notifySepulchreDetected();
+			if (!grapples.contains(gameObject))
+			{
+				grapples.add(gameObject);
+				associateObstacleWithTrackers(gameObject);
+			}
+			return;
+		}
+
+		if (id == SepulchreConstants.PORTAL_FRAME_OBJECT_ID)
+		{
+			notifySepulchreDetected();
+			if (!portalFrames.contains(gameObject))
+			{
+				portalFrames.add(gameObject);
+				associateObstacleWithTrackers(gameObject);
+			}
+			return;
+		}
+
+		if (SepulchreConstants.BRAZIER_OBJECT_IDS.contains(id))
+		{
+			notifySepulchreDetected();
+			if (!braziers.contains(gameObject))
+			{
+				braziers.add(gameObject);
+			}
+			return;
+		}
+
+		if (id == SepulchreConstants.HOLY_BARRIER_OBJECT_ID)
+		{
+			notifySepulchreDetected();
+			if (!holyBarriers.contains(gameObject))
+			{
+				holyBarriers.add(gameObject);
+			}
 		}
 	}
 
@@ -425,6 +541,55 @@ public class ObstacleHandler
 		wizardStatues.removeIf(statue -> statue.getGameObject() == gameObject);
 		swordStatues.removeIf(statue -> statue.getGameObject() == gameObject);
 		magicalObelisks.remove(gameObject);
+		coffins.remove(gameObject);
+		grandCoffins.remove(gameObject);
+		grapples.remove(gameObject);
+		portalFrames.remove(gameObject);
+		braziers.remove(gameObject);
+		holyBarriers.remove(gameObject);
+	}
+
+	public void onWallObjectSpawned(WallObjectSpawned event)
+	{
+		WallObject wallObject = event.getWallObject();
+		int id = wallObject.getId();
+
+		if (id == SepulchreConstants.FLOOR_5_BARRIER_OBJECT_ID)
+		{
+			notifySepulchreDetected();
+			if (!floor5Barriers.contains(wallObject))
+			{
+				floor5Barriers.add(wallObject);
+			}
+		}
+	}
+
+	public void onWallObjectDespawned(WallObjectDespawned event)
+	{
+		WallObject wallObject = event.getWallObject();
+		floor5Barriers.remove(wallObject);
+	}
+
+	public void onGroundObjectSpawned(GroundObjectSpawned event)
+	{
+		GroundObject groundObject = event.getGroundObject();
+		int id = groundObject.getId();
+
+		if (SepulchreConstants.BRIDGE_OBJECT_IDS.contains(id))
+		{
+			notifySepulchreDetected();
+			if (!bridges.contains(groundObject))
+			{
+				bridges.add(groundObject);
+				associateObstacleWithTrackers(groundObject);
+			}
+		}
+	}
+
+	public void onGroundObjectDespawned(GroundObjectDespawned event)
+	{
+		GroundObject groundObject = event.getGroundObject();
+		bridges.remove(groundObject);
 	}
 
 	public void onNpcSpawned(NpcSpawned event)
@@ -536,5 +701,202 @@ public class ObstacleHandler
 		}
 
 		return new int[] { dx, dy, rightHandOffsetX, rightHandOffsetY, startOffset };
+	}
+
+	private void createCoffinTracker(GameObject coffin)
+	{
+		WorldPoint coffinLocation = coffin.getWorldLocation();
+		if (skillObstacleTrackers.containsKey(coffinLocation))
+		{
+			return;
+		}
+
+		SkillObstacleTracker tracker = new SkillObstacleTracker(coffinLocation);
+
+		for (GroundObject bridge : bridges)
+		{
+			tracker.tryAssociateObstacle(bridge);
+		}
+
+		for (GameObject grapple : grapples)
+		{
+			tracker.tryAssociateObstacle(grapple);
+		}
+
+		for (GameObject portalFrame : portalFrames)
+		{
+			tracker.tryAssociateObstacle(portalFrame);
+		}
+
+		skillObstacleTrackers.put(coffinLocation, tracker);
+	}
+
+	private void associateObstacleWithTrackers(TileObject obstacle)
+	{
+		for (SkillObstacleTracker tracker : skillObstacleTrackers.values())
+		{
+			tracker.tryAssociateObstacle(obstacle);
+		}
+	}
+
+	public void onBridgeCrossed()
+	{
+		for (GroundObject bridge : bridges)
+		{
+			notifyTrackersOfObstacleUse(bridge, 5);
+		}
+	}
+
+	public void onGrappleUsed()
+	{
+		for (GameObject grapple : grapples)
+		{
+			notifyTrackersOfObstacleUse(grapple, 15);
+		}
+	}
+
+	public void onPortalUsed()
+	{
+		for (GameObject portalFrame : portalFrames)
+		{
+			notifyTrackersOfObstacleUse(portalFrame, 15);
+		}
+	}
+
+	private void notifyTrackersOfObstacleUse(TileObject obstacle, int maxDistance)
+	{
+		WorldPoint playerLocation = getPlayerWorldLocation();
+		if (playerLocation == null)
+		{
+			return;
+		}
+
+		if (GameObjectUtil.manhattanDistance(obstacle.getWorldLocation(), playerLocation) <= maxDistance)
+		{
+			for (SkillObstacleTracker tracker : skillObstacleTrackers.values())
+			{
+				if (tracker.hasObstacle(obstacle))
+				{
+					tracker.onObstacleUsed(obstacle);
+				}
+			}
+		}
+	}
+
+	private WorldPoint getPlayerWorldLocation()
+	{
+		Player player = client.getLocalPlayer();
+		return player != null ? player.getWorldLocation() : null;
+	}
+
+	public void onBrazierSacrificed()
+	{
+		Player player = client.getLocalPlayer();
+		if (player == null)
+		{
+			return;
+		}
+
+		WorldPoint playerPosition = WorldPoint.fromLocalInstance(client, player.getLocalLocation());
+		if (playerPosition == null)
+		{
+			return;
+		}
+
+		WorldPoint playerWorldLoc = player.getWorldLocation();
+
+		GameObject nearestBarrier = null;
+		int nearestDistance = Integer.MAX_VALUE;
+
+		for (GameObject barrier : holyBarriers)
+		{
+			WorldPoint barrierLoc = barrier.getWorldLocation();
+			if (barrierLoc.getPlane() != playerWorldLoc.getPlane())
+			{
+				continue;
+			}
+
+			int distance = GameObjectUtil.manhattanDistance(barrierLoc, playerWorldLoc);
+			if (distance < nearestDistance && distance <= 10)
+			{
+				nearestDistance = distance;
+				nearestBarrier = barrier;
+			}
+		}
+
+		if (nearestBarrier == null)
+		{
+			return;
+		}
+
+		for (SkillObstacleTracker tracker : skillObstacleTrackers.values())
+		{
+			tracker.associateBarrierOnSacrifice(nearestBarrier, playerPosition);
+		}
+	}
+
+	public void checkBarrierReturns(WorldPoint playerCanonicalPosition)
+	{
+		if (playerCanonicalPosition == null)
+		{
+			return;
+		}
+
+		for (SkillObstacleTracker tracker : skillObstacleTrackers.values())
+		{
+			tracker.checkBarrierReturn(playerCanonicalPosition);
+		}
+	}
+
+	public boolean shouldHighlightBarrier(GameObject barrier)
+	{
+		for (SkillObstacleTracker tracker : skillObstacleTrackers.values())
+		{
+			if (tracker.hasBarrier(barrier))
+			{
+				return tracker.shouldHighlight(barrier);
+			}
+		}
+		return false;
+	}
+
+	public void onCoffinLooted()
+	{
+		WorldPoint playerLocation = getPlayerWorldLocation();
+		if (playerLocation == null)
+		{
+			return;
+		}
+
+		SkillObstacleTracker nearestTracker = null;
+		int nearestDistance = Integer.MAX_VALUE;
+
+		for (SkillObstacleTracker tracker : skillObstacleTrackers.values())
+		{
+			int distance = GameObjectUtil.manhattanDistance(tracker.getCoffinLocation(), playerLocation);
+			if (distance < nearestDistance)
+			{
+				nearestDistance = distance;
+				nearestTracker = tracker;
+			}
+		}
+
+		if (nearestTracker != null && nearestDistance <= 5)
+		{
+			nearestTracker.onCoffinLooted();
+		}
+	}
+
+	public boolean shouldHighlightObstacle(TileObject obstacle)
+	{
+		for (SkillObstacleTracker tracker : skillObstacleTrackers.values())
+		{
+			if (tracker.hasObstacle(obstacle))
+			{
+				return tracker.shouldHighlight(obstacle);
+			}
+		}
+
+		return true;
 	}
 }

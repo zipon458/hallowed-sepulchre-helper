@@ -14,6 +14,7 @@ A RuneLite plugin for the Hallowed Sepulchre agility course.
 - **Bolt & Sword Projectiles** - Highlights tiles for bolts and swords
 - **Obelisk Highlighting** - Highlights the obelisk on your last eligible floor or when time runs out
 - **Player Immunity** - Visual indicator when immune after blue portal teleport
+- **Skill Obstacles & Coffins** - Highlight skill obstacles and coffins
 
 Most features can be toggled on/off and colors can be customized.
 
