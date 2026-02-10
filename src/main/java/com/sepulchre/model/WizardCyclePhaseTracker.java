@@ -227,6 +227,11 @@ public class WizardCyclePhaseTracker
 		return 0;
 	}
 
+	/**
+	 * Check if the player is near the wizard statue area.
+	 * Coordinates should be instance-world coordinates (from getWorldLocation()),
+	 * matching the coordinate space of the wizard statue locations.
+	 */
 	public boolean isPlayerInRange(int playerX, int playerY)
 	{
 		if (!detected)

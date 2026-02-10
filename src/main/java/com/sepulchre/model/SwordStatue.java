@@ -35,18 +35,8 @@ public class SwordStatue
 		}
 	}
 
-	public WorldPoint getLocation()
-	{
-		return location;
-	}
-
 	public WorldPoint getDangerZoneCenter()
 	{
-		if (gameObject == null)
-		{
-			return null;
-		}
-
 		int orientation = gameObject.getOrientation();
 		int dx = 0;
 		int dy = 0;

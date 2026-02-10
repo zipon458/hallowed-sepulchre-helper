@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class SkillObstacleTracker
 {
-	private static final int ASSOCIATION_RADIUS = 20;
+	private static final int ASSOCIATION_RADIUS = 30;
 
 	@Getter
 	private final WorldPoint coffinLocation;
@@ -45,7 +45,7 @@ public class SkillObstacleTracker
 		WorldPoint location = barrier.getWorldLocation();
 		if (isWithinRange(location))
 		{
-			obstacleStates.put(location, SkillObstacleState.NO_HIGHLIGHT_AT_COFFIN);
+			obstacleStates.put(location, SkillObstacleState.USED_AWAITING_LOOT);
 			barrierLocation = location;
 			brazierSacrificePosition = playerPosition;
 		}
@@ -59,7 +59,13 @@ public class SkillObstacleTracker
 	public boolean shouldHighlight(TileObject obstacle)
 	{
 		SkillObstacleState state = obstacleStates.get(obstacle.getWorldLocation());
-		return state != null && state.shouldHighlight();
+		return state != null && state.isStillRelevant();
+	}
+
+	public boolean hasBeenUsed(TileObject obstacle)
+	{
+		SkillObstacleState state = obstacleStates.get(obstacle.getWorldLocation());
+		return state != null && state != SkillObstacleState.HIGHLIGHT_PRE_CROSS;
 	}
 
 	public void onObstacleUsed(TileObject obstacle)
@@ -74,7 +80,7 @@ public class SkillObstacleTracker
 
 		if (!coffinLooted && currentState == SkillObstacleState.HIGHLIGHT_PRE_CROSS)
 		{
-			obstacleStates.put(location, SkillObstacleState.NO_HIGHLIGHT_AT_COFFIN);
+			obstacleStates.put(location, SkillObstacleState.USED_AWAITING_LOOT);
 		}
 		else if (coffinLooted && currentState == SkillObstacleState.HIGHLIGHT_FOR_RETURN)
 		{
@@ -87,7 +93,7 @@ public class SkillObstacleTracker
 		coffinLooted = true;
 		for (Map.Entry<WorldPoint, SkillObstacleState> entry : obstacleStates.entrySet())
 		{
-			if (entry.getValue() == SkillObstacleState.NO_HIGHLIGHT_AT_COFFIN)
+			if (entry.getValue() == SkillObstacleState.USED_AWAITING_LOOT)
 			{
 				entry.setValue(SkillObstacleState.HIGHLIGHT_FOR_RETURN);
 			}

@@ -9,7 +9,6 @@ import com.sepulchre.overlay.RunTimerOverlay;
 import com.sepulchre.overlay.SepulchreSceneOverlay;
 import com.sepulchre.util.SepulchreConstants;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
@@ -30,9 +29,10 @@ import net.runelite.api.events.WallObjectDespawned;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.NpcDespawned;
 import net.runelite.api.events.NpcSpawned;
-import net.runelite.api.widgets.Widget;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -40,7 +40,6 @@ import net.runelite.client.ui.overlay.OverlayManager;
 import javax.inject.Inject;
 import java.util.Map;
 
-@Slf4j
 @PluginDescriptor(
 	name = "Hallowed Sepulchre Helper",
 	description = "Hallowed Sepulchre helper with more customization",
@@ -69,6 +68,9 @@ public class SepulchrePlugin extends Plugin
 	@Inject
 	private ObstacleHandler obstacleHandler;
 
+	@Inject
+	private ClientThread clientThread;
+
 	@Getter
 	private boolean inSepulchre;
 
@@ -77,7 +79,9 @@ public class SepulchrePlugin extends Plugin
 	private boolean pendingRouteClassification = false;
 	private int pendingRouteFloor = 0;
 
-	@Override
+	private boolean earlyDetected = false;
+
+@Override
 	protected void startUp()
 	{
 		overlayManager.add(sceneOverlay);
@@ -99,11 +103,34 @@ public class SepulchrePlugin extends Plugin
 	private void reset()
 	{
 		inSepulchre = false;
+		earlyDetected = false;
 		pendingLocationVerification = false;
 		verifiedThisTick = false;
 		pendingRouteClassification = false;
 		pendingRouteFloor = 0;
 		obstacleHandler.reset();
+	}
+
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event)
+	{
+		if (!"sepulchre".equals(event.getGroup()))
+		{
+			return;
+		}
+
+		String key = event.getKey();
+		if (("highlightProjectiles".equals(key) || "highlightNavigation".equals(key) || "highlightSkillObstacles".equals(key))
+			&& "true".equals(event.getNewValue()))
+		{
+			clientThread.invokeLater(() ->
+			{
+				if (client.getGameState() == GameState.LOGGED_IN)
+				{
+					sendChatMessage("Make sure you disable this setting at the bottom of the 'Agility' plugin configuration.");
+				}
+			});
+		}
 	}
 
 	@Subscribe
@@ -122,15 +149,12 @@ public class SepulchrePlugin extends Plugin
 			SepulchreRoute previousRoute = obstacleHandler.getCurrentRoute();
 			boolean wasInLowerSection = obstacleHandler.isInLowerSection();
 			int previousStartPlane = obstacleHandler.getFloorStartPlane();
-			int previousFloorTicks = obstacleHandler.getFloorTicks();
-			int previousRunTicks = obstacleHandler.getRunTicks();
-			boolean wasTimerStarted = obstacleHandler.isTimerStarted();
-			boolean wasTimerPaused = obstacleHandler.isTimerPaused();
 			boolean wasInSepulchre = inSepulchre;
 
 			if (wasInSepulchre)
 			{
 				obstacleHandler.saveProjectileNpcs();
+				obstacleHandler.savePortalState();
 			}
 
 			obstacleHandler.reset();
@@ -138,6 +162,7 @@ public class SepulchrePlugin extends Plugin
 			if (wasInSepulchre)
 			{
 				obstacleHandler.restoreProjectileNpcs();
+				obstacleHandler.restorePortalState();
 
 				if (wasDoorClosed)
 				{
@@ -145,10 +170,7 @@ public class SepulchrePlugin extends Plugin
 				}
 				obstacleHandler.setCurrentFloor(previousFloor);
 				obstacleHandler.setCurrentRoute(previousRoute);
-				obstacleHandler.restoreFloorState(wasInLowerSection, previousStartPlane, previousFloorTicks);
-				obstacleHandler.setRunTicks(previousRunTicks);
-				obstacleHandler.setTimerStarted(wasTimerStarted);
-				obstacleHandler.setTimerPaused(wasTimerPaused);
+				obstacleHandler.restoreFloorState(wasInLowerSection, previousStartPlane);
 				pendingLocationVerification = true;
 				verifiedThisTick = false;
 			}
@@ -163,6 +185,11 @@ public class SepulchrePlugin extends Plugin
 			return;
 		}
 
+		if (!inSepulchre && !earlyDetected)
+		{
+			tryEarlyActivation();
+		}
+
 		if (pendingLocationVerification)
 		{
 			if (!verifiedThisTick)
@@ -173,6 +200,8 @@ public class SepulchrePlugin extends Plugin
 			pendingLocationVerification = false;
 			verifiedThisTick = false;
 			obstacleHandler.clearSavedProjectileNpcs();
+			obstacleHandler.clearSavedPortalState();
+			obstacleHandler.scanForExistingGroundObjects();
 		}
 
 		if (pendingRouteClassification && inSepulchre)
@@ -184,7 +213,6 @@ public class SepulchrePlugin extends Plugin
 
 		if (inSepulchre)
 		{
-			updateTimerPausedState();
 			obstacleHandler.onGameTick();
 
 			Player player = client.getLocalPlayer();
@@ -200,28 +228,50 @@ public class SepulchrePlugin extends Plugin
 		}
 	}
 
-	private void onSepulchreObjectDetected()
+	private void tryEarlyActivation()
 	{
-		verifiedThisTick = true;
-	}
-
-	private void updateTimerPausedState()
-	{
-		Widget timerWidget = client.getWidget(SepulchreConstants.TIMER_WIDGET_GROUP, SepulchreConstants.TIMER_WIDGET_CHILD);
-		if (timerWidget == null || timerWidget.getText() == null || timerWidget.getText().isEmpty())
+		Player player = client.getLocalPlayer();
+		if (player == null)
 		{
-			if (!obstacleHandler.isTimerStarted())
-			{
-				obstacleHandler.setTimerPaused(true);
-			}
 			return;
 		}
 
-		obstacleHandler.setTimerStarted(true);
+		LocalPoint localPoint = player.getLocalLocation();
+		if (localPoint == null)
+		{
+			return;
+		}
 
-		String text = timerWidget.getText();
-		boolean isPaused = text.contains("(Paused)");
-		obstacleHandler.setTimerPaused(isPaused);
+		WorldPoint canonical = WorldPoint.fromLocalInstance(client, localPoint);
+		if (canonical == null)
+		{
+			return;
+		}
+
+		for (int floor = 1; floor <= 5; floor++)
+		{
+			Map<WorldPoint, SepulchreRoute> spawnTiles = SepulchreConstants.getSpawnTilesForFloor(floor);
+			if (spawnTiles == null || spawnTiles.isEmpty())
+			{
+				continue;
+			}
+
+			SepulchreRoute route = spawnTiles.get(canonical);
+			if (route != null)
+			{
+				earlyDetected = true;
+				inSepulchre = true;
+				obstacleHandler.setCurrentFloor(floor);
+				obstacleHandler.setFloorStartPlane(canonical.getPlane());
+				obstacleHandler.setCurrentRoute(route);
+				return;
+			}
+		}
+	}
+
+	private void onSepulchreObjectDetected()
+	{
+		verifiedThisTick = true;
 	}
 
 	private void classifySpawnTile(int floor)
@@ -366,10 +416,13 @@ public class SepulchrePlugin extends Plugin
 		}
 		else if (message.contains(SepulchreConstants.FLOOR_1_MESSAGE))
 		{
-			inSepulchre = true;
-			obstacleHandler.onFloorEntered(true);
-			pendingRouteClassification = true;
-			pendingRouteFloor = 1;
+			if (!earlyDetected)
+			{
+				inSepulchre = true;
+				obstacleHandler.onFloorEntered(true);
+				pendingRouteClassification = true;
+				pendingRouteFloor = 1;
+			}
 		}
 
 		if (!inSepulchre)
@@ -381,6 +434,11 @@ public class SepulchrePlugin extends Plugin
 			|| message.contains("You hear the sound of a magical barrier activating"))
 		{
 			obstacleHandler.onDoorToNextFloorClosed();
+		}
+
+		if (message.contains(SepulchreConstants.BRIDGE_BUILT_MESSAGE))
+		{
+			obstacleHandler.onBridgeBuilt();
 		}
 
 		if (message.contains(SepulchreConstants.BRIDGE_CROSSED_MESSAGE))
@@ -420,15 +478,15 @@ public class SepulchrePlugin extends Plugin
 		String option = event.getOption();
 		String target = event.getTarget();
 
-		if (option == null || !option.equals("Activate"))
+		if (option != null && option.equals("Activate")
+			&& target != null && target.toLowerCase().contains("magical obelisk"))
 		{
-			return;
+			handleObeliskMenuSwap();
 		}
-		if (target == null || !target.toLowerCase().contains("magical obelisk"))
-		{
-			return;
-		}
+	}
 
+	private void handleObeliskMenuSwap()
+	{
 		int currentFloor = obstacleHandler.getCurrentFloor();
 		int playerMaxFloor = obstacleHandler.getPlayerMaxFloor();
 		boolean doorClosed = obstacleHandler.isDoorToNextFloorClosed();
@@ -467,6 +525,11 @@ public class SepulchrePlugin extends Plugin
 			entries[activateIndex] = temp;
 			client.setMenuEntries(entries);
 		}
+	}
+
+	private void sendChatMessage(String message)
+	{
+		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "[Sepulchre] " + message, null);
 	}
 
 	@Provides

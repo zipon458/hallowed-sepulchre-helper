@@ -16,6 +16,7 @@ public class WizardStatue
 	private static final int ACTIVATION_CHECK_TICKS = 10;
 
 	private final GameObject gameObject;
+	private final WorldPoint location;
 	private final Set<WorldPoint> fireTiles = new HashSet<>();
 
 	@Setter
@@ -45,6 +46,7 @@ public class WizardStatue
 	public WizardStatue(GameObject gameObject)
 	{
 		this.gameObject = gameObject;
+		this.location = gameObject.getWorldLocation();
 	}
 
 	public boolean isConfirmedActiveOrUnknown()
@@ -75,11 +77,6 @@ public class WizardStatue
 		fireTiles.add(tile);
 	}
 
-	public WorldPoint getLocation()
-	{
-		return gameObject.getWorldLocation();
-	}
-
 	public void onGameTick()
 	{
 		cachedAnimationId = GameObjectUtil.getAnimationId(gameObject);
@@ -89,17 +86,12 @@ public class WizardStatue
 		if (isFirstTick)
 		{
 			isFirstTick = false;
-			if (currentlyFiring || currentlyWarning)
-			{
-				hasEverFired = true;
-			}
 		}
 		else
 		{
 			if (currentlyFiring && !wasFiringLastTick)
 			{
 				tickCounter = firePhaseTicks;
-				hasEverFired = true;
 			}
 			else if (currentlyWarning && !wasWarningLastTick && !currentlyFiring)
 			{
@@ -113,11 +105,11 @@ public class WizardStatue
 			{
 				tickCounter--;
 			}
+		}
 
-			if (currentlyFiring || currentlyWarning)
-			{
-				hasEverFired = true;
-			}
+		if (currentlyFiring || currentlyWarning)
+		{
+			hasEverFired = true;
 		}
 
 		wasFiringLastTick = currentlyFiring;
