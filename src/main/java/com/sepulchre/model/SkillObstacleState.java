@@ -3,11 +3,11 @@ package com.sepulchre.model;
 public enum SkillObstacleState
 {
 	HIGHLIGHT_PRE_CROSS,
-	NO_HIGHLIGHT_AT_COFFIN,
+	USED_AWAITING_LOOT,
 	HIGHLIGHT_FOR_RETURN,
 	DONE;
 
-	public boolean shouldHighlight()
+	public boolean isStillRelevant()
 	{
 		return this != DONE;
 	}

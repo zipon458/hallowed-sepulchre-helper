@@ -16,6 +16,9 @@ public final class SepulchreConstants
 	public static final int TIMER_WIDGET_GROUP = 668;
 	public static final int TIMER_WIDGET_CHILD = 4;
 
+	public static final int VARBIT_HALLOWED_TIME_SPENT = 10393;
+	public static final int VARBIT_HALLOWED_CURRENT_FLOOR_TIME_SPENT = 10417;
+
 	public static final int[] FLOOR_AGILITY_REQUIREMENTS = {52, 62, 72, 82, 92};
 
 	private static final Map<Integer, Map<WorldPoint, SepulchreRoute>> SPAWN_TILES_BY_FLOOR = new HashMap<>();
@@ -55,6 +58,7 @@ public final class SepulchreConstants
 
 	public static final String FLOOR_1_MESSAGE = "You venture down into the Hallowed Sepulchre";
 	public static final String FLOOR_CHANGE_MESSAGE = "You venture further down into the Hallowed Sepulchre";
+	public static final String BRIDGE_BUILT_MESSAGE = "You repair the broken bridge";
 	public static final String BRIDGE_CROSSED_MESSAGE = "You rapidly make your way across the bridge";
 	public static final String GRAPPLE_USED_MESSAGE = "and swing safely to the other side";
 	public static final String PORTAL_USED_MESSAGE = "You pass through the portal and end up on the other side";
@@ -107,4 +111,11 @@ public final class SepulchreConstants
 	public static final int HOLY_BARRIER_OBJECT_ID = 39534;
 	public static final int FLOOR_5_BARRIER_OBJECT_ID = 39540;
 	public static final int MAGICAL_OBELISK_ID = 38451;
+
+	public static final Set<Integer> STAIRS_IDS = Set.of(38453, 38454, 38462, 38463, 38464, 38465, 38466, 38467, 38468, 38469, 38471, 38472, 38473, 38474, 38475, 38476, 39622, 39623, 39624, 39625);
+	public static final Set<Integer> END_FLOOR_STAIRS_IDS = Set.of(39622, 39623, 39624, 39625);
+
+	public static final Set<Integer> ALL_PLATFORM_IDS = Set.of(38455, 38456, 38457, 38458, 38459, 38470, 38477);
+
+	public static final int GATE_WALL_OBJECT_ID = 38460;
 }

@@ -6,6 +6,7 @@ import com.sepulchre.handler.ObstacleHandler;
 import com.sepulchre.model.SepulchreRoute;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
+import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
@@ -85,6 +86,7 @@ public class InfoPanelOverlay extends OverlayPanel
 		this.client = client;
 
 		setPosition(OverlayPosition.TOP_LEFT);
+		setLayer(OverlayLayer.ABOVE_WIDGETS);
 		setPriority(OverlayPriority.LOW);
 	}
 
@@ -136,7 +138,7 @@ public class InfoPanelOverlay extends OverlayPanel
 				else
 				{
 					double tickPerfectTicks = getTickPerfectMaxTicks(route);
-					if (tickPerfectTicks > 0 && floorTicks <= tickPerfectTicks)
+					if (tickPerfectTicks > 0 && floorTicks > 0 && floorTicks <= tickPerfectTicks)
 					{
 						timerColor = Color.GREEN;
 					}

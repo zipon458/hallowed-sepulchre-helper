@@ -58,24 +58,20 @@ public class SepulchreSceneOverlay extends Overlay
 	private Stroke cachedProjectileStroke;
 	private int cachedProjectileStrokeWidth = -1;
 
+	private Stroke cachedCrossbowStroke;
+	private int cachedCrossbowStrokeWidth = -1;
+
 	private Color cachedFireBorderColor;
 	private int cachedFireBorderOpacity = -1;
 	private Color cachedFireBaseColor;
 
-	private Color cachedCrossbowColor;
-	private Color cachedCrossbowBorder;
-	private Color cachedObeliskColor;
-	private Color cachedObeliskBorder;
-	private Color cachedCoffinColor;
-	private Color cachedCoffinBorder;
-	private Color cachedSkillObstacleColor;
-	private Color cachedSkillObstacleBorder;
-	private Color cachedSkillObstacleMissingColor;
-	private Color cachedSkillObstacleMissingBorder;
-	private Color cachedYellowPortalColor;
-	private Color cachedYellowPortalBorder;
-	private Color cachedBluePortalColor;
-	private Color cachedBluePortalBorder;
+	private final BorderColorCache obeliskBorderCache = new BorderColorCache();
+	private final BorderColorCache coffinBorderCache = new BorderColorCache();
+	private final BorderColorCache skillObstacleBorderCache = new BorderColorCache();
+	private final BorderColorCache skillObstacleMissingBorderCache = new BorderColorCache();
+	private final BorderColorCache yellowPortalBorderCache = new BorderColorCache();
+	private final BorderColorCache bluePortalBorderCache = new BorderColorCache();
+	private final BorderColorCache navigationBorderCache = new BorderColorCache();
 
 	@Inject
 	public SepulchreSceneOverlay(Client client, SepulchrePlugin plugin, SepulchreConfig config,
@@ -114,6 +110,9 @@ public class SepulchreSceneOverlay extends Overlay
 		renderMagicalObelisks(graphics, playerPlane);
 		renderCoffins(graphics, playerPlane);
 		renderSkillObstacles(graphics, playerPlane);
+		renderStairs(graphics, playerPlane);
+		renderPlatforms(graphics, playerPlane);
+		renderGates(graphics, playerPlane);
 		renderPlayerImmunity(graphics);
 
 		return null;
@@ -141,6 +140,17 @@ public class SepulchreSceneOverlay extends Overlay
 		return cachedProjectileStroke;
 	}
 
+	private Stroke getCrossbowBorderStroke()
+	{
+		int width = Math.max(1, Math.min(5, config.crossbowBorderWidth()));
+		if (width != cachedCrossbowStrokeWidth)
+		{
+			cachedCrossbowStrokeWidth = width;
+			cachedCrossbowStroke = new BasicStroke(width);
+		}
+		return cachedCrossbowStroke;
+	}
+
 	private Color getDangerBorderColor(Color baseColor)
 	{
 		int borderOpacity = Math.max(0, Math.min(255, config.dangerBorderOpacity()));
@@ -160,88 +170,47 @@ public class SepulchreSceneOverlay extends Overlay
 
 	private Color getCrossbowBorderColor()
 	{
-		Color color = config.crossbowColor();
-		if (!color.equals(cachedCrossbowColor))
-		{
-			cachedCrossbowColor = color;
-			cachedCrossbowBorder = toOpaque(color);
-		}
-		return cachedCrossbowBorder;
+		return config.crossbowBorderColor();
 	}
 
 	private Color getObeliskBorderColor()
 	{
-		Color color = config.obeliskColor();
-		if (!color.equals(cachedObeliskColor))
-		{
-			cachedObeliskColor = color;
-			cachedObeliskBorder = toOpaque(color);
-		}
-		return cachedObeliskBorder;
+		return obeliskBorderCache.get(config.obeliskColor());
 	}
 
 	private Color getCoffinBorderColor()
 	{
-		Color color = config.coffinColor();
-		if (!color.equals(cachedCoffinColor))
-		{
-			cachedCoffinColor = color;
-			cachedCoffinBorder = toOpaque(color);
-		}
-		return cachedCoffinBorder;
+		return coffinBorderCache.get(config.coffinColor());
 	}
 
 	private Color getSkillObstacleBorderColor()
 	{
-		Color color = config.skillObstacleColor();
-		if (!color.equals(cachedSkillObstacleColor))
-		{
-			cachedSkillObstacleColor = color;
-			cachedSkillObstacleBorder = toOpaque(color);
-		}
-		return cachedSkillObstacleBorder;
+		return skillObstacleBorderCache.get(config.skillObstacleColor());
 	}
 
 	private Color getSkillObstacleMissingBorderColor()
 	{
-		Color color = config.skillObstacleMissingReqColor();
-		if (!color.equals(cachedSkillObstacleMissingColor))
-		{
-			cachedSkillObstacleMissingColor = color;
-			cachedSkillObstacleMissingBorder = toOpaque(color);
-		}
-		return cachedSkillObstacleMissingBorder;
+		return skillObstacleMissingBorderCache.get(config.skillObstacleMissingReqColor());
 	}
 
 	private Color getYellowPortalBorderColor()
 	{
-		Color color = config.portalYellowColor();
-		if (!color.equals(cachedYellowPortalColor))
-		{
-			cachedYellowPortalColor = color;
-			cachedYellowPortalBorder = toOpaque(color);
-		}
-		return cachedYellowPortalBorder;
+		return yellowPortalBorderCache.get(config.portalYellowColor());
 	}
 
 	private Color getBluePortalBorderColor()
 	{
-		Color color = config.portalBlueColor();
-		if (!color.equals(cachedBluePortalColor))
-		{
-			cachedBluePortalColor = color;
-			cachedBluePortalBorder = toOpaque(color);
-		}
-		return cachedBluePortalBorder;
+		return bluePortalBorderCache.get(config.portalBlueColor());
+	}
+
+	private Color getNavigationBorderColor()
+	{
+		return navigationBorderCache.get(config.navigationColor());
 	}
 
 	private void renderTilePolygon(Graphics2D graphics, Polygon poly, Color fillColor, Color borderColor, Stroke stroke)
 	{
-		graphics.setStroke(stroke);
-		graphics.setColor(borderColor);
-		graphics.draw(poly);
-		graphics.setColor(fillColor);
-		graphics.fill(poly);
+		renderShape(graphics, poly, fillColor, borderColor, stroke);
 	}
 
 	private Polygon getTilePolygon(WorldPoint worldPoint, int playerPlane)
@@ -260,6 +229,20 @@ public class SepulchreSceneOverlay extends Overlay
 		return Perspective.getCanvasTilePoly(client, localPoint);
 	}
 
+	private WorldPoint getCanonicalFromInstance(WorldPoint instancePoint)
+	{
+		if (instancePoint == null)
+		{
+			return null;
+		}
+		LocalPoint localPoint = LocalPoint.fromWorld(client, instancePoint);
+		if (localPoint == null)
+		{
+			return null;
+		}
+		return WorldPoint.fromLocalInstance(client, localPoint);
+	}
+
 	private void renderLightning(Graphics2D graphics, int playerPlane)
 	{
 		if (!config.highlightLightning())
@@ -272,7 +255,13 @@ public class SepulchreSceneOverlay extends Overlay
 
 		for (LightningStrike lightning : obstacleHandler.getActiveLightning())
 		{
-			Polygon poly = getTilePolygon(lightning.getLocation(), playerPlane);
+			WorldPoint lightningLocation = lightning.getLocation();
+			if (!obstacleHandler.shouldShowForCurrentRoute(lightningLocation))
+			{
+				continue;
+			}
+
+			Polygon poly = getTilePolygon(lightningLocation, playerPlane);
 			if (poly != null)
 			{
 				renderTilePolygon(graphics, poly, fillColor, borderColor, DEFAULT_STROKE);
@@ -287,29 +276,33 @@ public class SepulchreSceneOverlay extends Overlay
 			return;
 		}
 
-		Color color = config.crossbowColor();
-		Color borderColor = getCrossbowBorderColor();
+		Color dangerColor = config.crossbowColor();
+		Color dangerBorderColor = getCrossbowBorderColor();
 		HighlightStyle style = config.crossbowHighlightStyle();
+		Stroke crossbowStroke = getCrossbowBorderStroke();
 
 		for (CrossbowStatue statue : obstacleHandler.getCrossbowStatues())
 		{
-			WorldPoint statueLocation = statue.getGameObject().getWorldLocation();
-			if (statueLocation.getPlane() != playerPlane)
+			GameObject statueObj = statue.getGameObject();
+			if (statueObj.getWorldLocation().getPlane() != playerPlane)
 			{
 				continue;
 			}
 
-			if (!statue.isDangerous())
+			if (!obstacleHandler.shouldShowForCurrentRoute(statueObj.getLocalLocation()))
 			{
 				continue;
 			}
 
-			renderGameObject(graphics, statue.getGameObject(), color, borderColor, style);
+			if (statue.isDangerous())
+			{
+				renderGameObject(graphics, statue.getGameObject(), dangerColor, dangerBorderColor, style, crossbowStroke);
+			}
 		}
 	}
 
 	private void renderGameObject(Graphics2D graphics, net.runelite.api.GameObject gameObject,
-		Color fillColor, Color borderColor, HighlightStyle style)
+		Color fillColor, Color borderColor, HighlightStyle style, Stroke stroke)
 	{
 		Shape shape = null;
 
@@ -332,16 +325,7 @@ public class SepulchreSceneOverlay extends Overlay
 				break;
 		}
 
-		if (shape == null)
-		{
-			return;
-		}
-
-		graphics.setStroke(DEFAULT_STROKE);
-		graphics.setColor(borderColor);
-		graphics.draw(shape);
-		graphics.setColor(fillColor);
-		graphics.fill(shape);
+		renderShape(graphics, shape, fillColor, borderColor, stroke);
 	}
 
 	private void renderWizardStatues(Graphics2D graphics, int playerPlane)
@@ -359,8 +343,13 @@ public class SepulchreSceneOverlay extends Overlay
 
 		for (WizardStatue statue : obstacleHandler.getWizardStatues())
 		{
-			WorldPoint statueLocation = statue.getLocation();
-			if (statueLocation.getPlane() != playerPlane)
+			GameObject statueObj = statue.getGameObject();
+			if (statueObj.getWorldLocation().getPlane() != playerPlane)
+			{
+				continue;
+			}
+
+			if (!obstacleHandler.shouldShowForCurrentRoute(statueObj.getLocalLocation()))
 			{
 				continue;
 			}
@@ -426,8 +415,13 @@ public class SepulchreSceneOverlay extends Overlay
 
 		for (SwordStatue statue : obstacleHandler.getSwordStatues())
 		{
-			WorldPoint statueLocation = statue.getLocation();
-			if (statueLocation.getPlane() != playerPlane)
+			GameObject statueObj = statue.getGameObject();
+			if (statueObj.getWorldLocation().getPlane() != playerPlane)
+			{
+				continue;
+			}
+
+			if (!obstacleHandler.shouldShowForCurrentRoute(statueObj.getLocalLocation()))
 			{
 				continue;
 			}
@@ -485,16 +479,23 @@ public class SepulchreSceneOverlay extends Overlay
 		Color borderColor = config.boltBorderColor();
 		Stroke stroke = getProjectileBorderStroke();
 
+		boolean routeFilterEnabled = config.filterByRoute();
+
 		for (NPC npc : obstacleHandler.getBoltNpcs())
 		{
-			WorldPoint npcLocation = npc.getWorldLocation();
-			if (npcLocation.getPlane() != playerPlane)
+			if (npc.getWorldLocation().getPlane() != playerPlane)
 			{
 				continue;
 			}
 
 			LocalPoint lp = npc.getLocalLocation();
 			if (lp == null)
+			{
+				continue;
+			}
+
+			CrossbowStatue sourceStatue = findFiringCrossbowStatue(npc.getWorldLocation(), routeFilterEnabled);
+			if (sourceStatue == null && routeFilterEnabled)
 			{
 				continue;
 			}
@@ -518,10 +519,11 @@ public class SepulchreSceneOverlay extends Overlay
 		Color borderColor = config.swordBorderColor();
 		Stroke stroke = getProjectileBorderStroke();
 
+		boolean routeFilterEnabled = config.filterByRoute();
+
 		for (NPC npc : obstacleHandler.getSwordNpcs())
 		{
-			WorldPoint npcLocation = npc.getWorldLocation();
-			if (npcLocation.getPlane() != playerPlane)
+			if (npc.getWorldLocation().getPlane() != playerPlane)
 			{
 				continue;
 			}
@@ -534,6 +536,18 @@ public class SepulchreSceneOverlay extends Overlay
 
 			NPCComposition composition = npc.getTransformedComposition();
 			int size = (composition != null) ? composition.getSize() : 1;
+			WorldPoint npcSW = npc.getWorldLocation();
+			int centerOffset = size / 2;
+			WorldPoint npcCenter = new WorldPoint(
+				npcSW.getX() + centerOffset,
+				npcSW.getY() + centerOffset,
+				npcSW.getPlane()
+			);
+			SwordStatue sourceStatue = findFiringSwordStatue(npcCenter, routeFilterEnabled);
+			if (sourceStatue == null && routeFilterEnabled)
+			{
+				continue;
+			}
 
 			Polygon poly = Perspective.getCanvasTileAreaPoly(client, lp, size);
 			if (poly != null)
@@ -567,6 +581,11 @@ public class SepulchreSceneOverlay extends Overlay
 
 		for (WorldPoint portalLocation : portals)
 		{
+			if (!obstacleHandler.shouldShowForCurrentRoute(portalLocation))
+			{
+				continue;
+			}
+
 			Polygon poly = getTilePolygon(portalLocation, playerPlane);
 			if (poly == null)
 			{
@@ -623,21 +642,17 @@ public class SepulchreSceneOverlay extends Overlay
 
 		for (GameObject obelisk : obstacleHandler.getMagicalObelisks())
 		{
-			WorldPoint obeliskLocation = obelisk.getWorldLocation();
-			if (obeliskLocation.getPlane() != playerPlane)
+			if (obelisk.getWorldLocation().getPlane() != playerPlane)
 			{
 				continue;
 			}
 
-			Shape hull = obelisk.getConvexHull();
-			if (hull != null)
+			if (!obstacleHandler.shouldShowForCurrentRoute(obelisk.getLocalLocation()))
 			{
-				graphics.setStroke(DEFAULT_STROKE);
-				graphics.setColor(borderColor);
-				graphics.draw(hull);
-				graphics.setColor(fillColor);
-				graphics.fill(hull);
+				continue;
 			}
+
+			renderShape(graphics, obelisk.getConvexHull(), fillColor, borderColor, DEFAULT_STROKE);
 		}
 	}
 
@@ -687,8 +702,12 @@ public class SepulchreSceneOverlay extends Overlay
 		{
 			for (GameObject coffin : obstacleHandler.getCoffins())
 			{
-				WorldPoint coffinLocation = coffin.getWorldLocation();
-				if (coffinLocation.getPlane() != playerPlane)
+				if (coffin.getWorldLocation().getPlane() != playerPlane)
+				{
+					continue;
+				}
+
+				if (!obstacleHandler.shouldShowForCurrentRoute(coffin.getLocalLocation()))
 				{
 					continue;
 				}
@@ -698,15 +717,7 @@ public class SepulchreSceneOverlay extends Overlay
 					continue;
 				}
 
-				Shape clickbox = coffin.getClickbox();
-				if (clickbox != null)
-				{
-					graphics.setStroke(DEFAULT_STROKE);
-					graphics.setColor(borderColor);
-					graphics.draw(clickbox);
-					graphics.setColor(fillColor);
-					graphics.fill(clickbox);
-				}
+				renderTileObject(graphics, coffin, fillColor, borderColor);
 			}
 		}
 
@@ -714,8 +725,12 @@ public class SepulchreSceneOverlay extends Overlay
 		{
 			for (GameObject grandCoffin : obstacleHandler.getGrandCoffins())
 			{
-				WorldPoint coffinLocation = grandCoffin.getWorldLocation();
-				if (coffinLocation.getPlane() != playerPlane)
+				if (grandCoffin.getWorldLocation().getPlane() != playerPlane)
+				{
+					continue;
+				}
+
+				if (!obstacleHandler.shouldShowForCurrentRoute(grandCoffin.getLocalLocation()))
 				{
 					continue;
 				}
@@ -725,30 +740,27 @@ public class SepulchreSceneOverlay extends Overlay
 					continue;
 				}
 
-				Shape clickbox = grandCoffin.getClickbox();
-				if (clickbox != null)
-				{
-					graphics.setStroke(DEFAULT_STROKE);
-					graphics.setColor(borderColor);
-					graphics.draw(clickbox);
-					graphics.setColor(fillColor);
-					graphics.fill(clickbox);
-				}
+				renderTileObject(graphics, grandCoffin, fillColor, borderColor);
 			}
+		}
 
 		boolean doorClosed = obstacleHandler.isDoorToNextFloorClosed();
-			Color barrierFillColor = doorClosed ? config.skillObstacleMissingReqColor() : config.skillObstacleColor();
-			Color barrierBorderColor = doorClosed ? getSkillObstacleMissingBorderColor() : getSkillObstacleBorderColor();
+		Color barrierFillColor = doorClosed ? config.skillObstacleMissingReqColor() : config.skillObstacleColor();
+		Color barrierBorderColor = doorClosed ? getSkillObstacleMissingBorderColor() : getSkillObstacleBorderColor();
 
-			for (WallObject barrier : obstacleHandler.getFloor5Barriers())
+		for (WallObject barrier : obstacleHandler.getFloor5Barriers())
+		{
+			if (barrier.getWorldLocation().getPlane() != playerPlane)
 			{
-				if (barrier.getWorldLocation().getPlane() != playerPlane)
-				{
-					continue;
-				}
-
-				renderTileObject(graphics, barrier, barrierFillColor, barrierBorderColor);
+				continue;
 			}
+
+			if (!obstacleHandler.shouldShowForCurrentRoute(barrier.getLocalLocation()))
+			{
+				continue;
+			}
+
+			renderTileObject(graphics, barrier, barrierFillColor, barrierBorderColor);
 		}
 	}
 
@@ -774,8 +786,6 @@ public class SepulchreSceneOverlay extends Overlay
 		if (config.highlightBridges())
 		{
 			boolean canBuild = !doorClosed && requirements.canBuildBridge();
-			Color fillColor = canBuild ? normalFillColor : missingFillColor;
-			Color borderColor = canBuild ? normalBorderColor : missingBorderColor;
 
 			for (GroundObject bridge : obstacleHandler.getBridges())
 			{
@@ -784,10 +794,19 @@ public class SepulchreSceneOverlay extends Overlay
 					continue;
 				}
 
+				if (!obstacleHandler.shouldShowForCurrentRoute(bridge.getLocalLocation()))
+				{
+					continue;
+				}
+
 				if (!obstacleHandler.shouldHighlightObstacle(bridge))
 				{
 					continue;
 				}
+
+				boolean useNormalColor = canBuild || obstacleHandler.hasObstacleBeenUsed(bridge);
+				Color fillColor = useNormalColor ? normalFillColor : missingFillColor;
+				Color borderColor = useNormalColor ? normalBorderColor : missingBorderColor;
 
 				renderTileObject(graphics, bridge, fillColor, borderColor);
 			}
@@ -802,6 +821,11 @@ public class SepulchreSceneOverlay extends Overlay
 			for (GameObject grapple : obstacleHandler.getGrapples())
 			{
 				if (grapple.getWorldLocation().getPlane() != playerPlane)
+				{
+					continue;
+				}
+
+				if (!obstacleHandler.shouldShowForCurrentRoute(grapple.getLocalLocation()))
 				{
 					continue;
 				}
@@ -828,6 +852,11 @@ public class SepulchreSceneOverlay extends Overlay
 					continue;
 				}
 
+				if (!obstacleHandler.shouldShowForCurrentRoute(portalFrame.getLocalLocation()))
+				{
+					continue;
+				}
+
 				if (!obstacleHandler.shouldHighlightObstacle(portalFrame))
 				{
 					continue;
@@ -850,6 +879,11 @@ public class SepulchreSceneOverlay extends Overlay
 					continue;
 				}
 
+				if (!obstacleHandler.shouldShowForCurrentRoute(brazier.getLocalLocation()))
+				{
+					continue;
+				}
+
 				if (!isObjectInAnyState(brazier, SepulchreConstants.BRAZIER_UNSACRIFICED_MORPHS))
 				{
 					continue;
@@ -861,6 +895,11 @@ public class SepulchreSceneOverlay extends Overlay
 			for (GameObject barrier : obstacleHandler.getHolyBarriers())
 			{
 				if (barrier.getWorldLocation().getPlane() != playerPlane)
+				{
+					continue;
+				}
+
+				if (!obstacleHandler.shouldShowForCurrentRoute(barrier.getLocalLocation()))
 				{
 					continue;
 				}
@@ -877,14 +916,105 @@ public class SepulchreSceneOverlay extends Overlay
 
 	private void renderTileObject(Graphics2D graphics, TileObject tileObject, Color fillColor, Color borderColor)
 	{
-		Shape clickbox = tileObject.getClickbox();
-		if (clickbox != null)
+		renderShape(graphics, tileObject.getClickbox(), fillColor, borderColor, DEFAULT_STROKE);
+	}
+
+	private void renderShape(Graphics2D graphics, Shape shape, Color fillColor, Color borderColor, Stroke stroke)
+	{
+		if (shape == null)
 		{
-			graphics.setStroke(DEFAULT_STROKE);
-			graphics.setColor(borderColor);
-			graphics.draw(clickbox);
-			graphics.setColor(fillColor);
-			graphics.fill(clickbox);
+			return;
+		}
+		graphics.setStroke(stroke);
+		graphics.setColor(borderColor);
+		graphics.draw(shape);
+		graphics.setColor(fillColor);
+		graphics.fill(shape);
+	}
+
+	private void renderStairs(Graphics2D graphics, int playerPlane)
+	{
+		if (!config.highlightNavigation())
+		{
+			return;
+		}
+
+		Color fillColor = config.navigationColor();
+		Color borderColor = getNavigationBorderColor();
+
+		boolean hideEndStairs = obstacleHandler.getCurrentFloor() == obstacleHandler.getPlayerMaxFloor()
+			|| obstacleHandler.isDoorToNextFloorClosed();
+
+		for (GameObject stair : obstacleHandler.getStairs())
+		{
+			if (stair.getWorldLocation().getPlane() != playerPlane)
+			{
+				continue;
+			}
+
+			if (!obstacleHandler.shouldShowForCurrentRoute(stair.getLocalLocation()))
+			{
+				continue;
+			}
+
+			if (hideEndStairs && SepulchreConstants.END_FLOOR_STAIRS_IDS.contains(stair.getId()))
+			{
+				continue;
+			}
+
+			renderTileObject(graphics, stair, fillColor, borderColor);
+		}
+	}
+
+	private void renderPlatforms(Graphics2D graphics, int playerPlane)
+	{
+		if (!config.highlightNavigation())
+		{
+			return;
+		}
+
+		Color fillColor = config.navigationColor();
+		Color borderColor = getNavigationBorderColor();
+
+		for (GroundObject platform : obstacleHandler.getPlatforms())
+		{
+			if (platform.getWorldLocation().getPlane() != playerPlane)
+			{
+				continue;
+			}
+
+			if (!obstacleHandler.shouldShowForCurrentRoute(platform.getLocalLocation()))
+			{
+				continue;
+			}
+
+			renderTileObject(graphics, platform, fillColor, borderColor);
+		}
+	}
+
+	private void renderGates(Graphics2D graphics, int playerPlane)
+	{
+		if (!config.highlightNavigation())
+		{
+			return;
+		}
+
+		Color fillColor = config.navigationColor();
+		Color borderColor = getNavigationBorderColor();
+
+		for (WallObject gate : obstacleHandler.getGates())
+		{
+			if (gate.getWorldLocation().getPlane() != playerPlane)
+			{
+				continue;
+			}
+
+			if (!obstacleHandler.shouldShowForCurrentRoute(gate.getLocalLocation()))
+			{
+				continue;
+			}
+
+			renderTileObject(graphics, gate, fillColor, borderColor);
 		}
 	}
 
@@ -908,5 +1038,94 @@ public class SepulchreSceneOverlay extends Overlay
 	{
 		ObjectComposition impostor = getImpostor(gameObject);
 		return impostor != null && morphIds.contains(impostor.getId());
+	}
+
+	private CrossbowStatue findFiringCrossbowStatue(WorldPoint projectileLocation, boolean onlyCurrentRoute)
+	{
+		return findFiringStatue(obstacleHandler.getCrossbowStatues(), CrossbowStatue::getGameObject,
+			projectileLocation, onlyCurrentRoute);
+	}
+
+	private SwordStatue findFiringSwordStatue(WorldPoint projectileLocation, boolean onlyCurrentRoute)
+	{
+		return findFiringStatue(obstacleHandler.getSwordStatues(), SwordStatue::getGameObject,
+			projectileLocation, onlyCurrentRoute);
+	}
+
+	private <T> T findFiringStatue(Iterable<T> statues, java.util.function.Function<T, GameObject> getObj,
+		WorldPoint projectileLocation, boolean onlyCurrentRoute)
+	{
+		T best = null;
+		int bestDistance = Integer.MAX_VALUE;
+
+		for (T statue : statues)
+		{
+			GameObject obj = getObj.apply(statue);
+			WorldPoint statueLoc = obj.getWorldLocation();
+			if (statueLoc.getPlane() != projectileLocation.getPlane())
+			{
+				continue;
+			}
+
+			if (onlyCurrentRoute && !obstacleHandler.shouldShowForCurrentRoute(obj.getLocalLocation()))
+			{
+				continue;
+			}
+
+			if (!isOnFiringLine(projectileLocation, statueLoc, obj.getOrientation(), 1))
+			{
+				continue;
+			}
+
+			int distance = statueLoc.distanceTo(projectileLocation);
+			if (distance < bestDistance)
+			{
+				bestDistance = distance;
+				best = statue;
+			}
+		}
+
+		return best;
+	}
+
+	private boolean isOnFiringLine(WorldPoint projectile, WorldPoint statueSW, int orientation, int statueWidth)
+	{
+		int px = projectile.getX();
+		int py = projectile.getY();
+		int sx = statueSW.getX();
+		int sy = statueSW.getY();
+
+		if (orientation >= 1280 && orientation < 1792)
+		{
+			return py >= sy && py < sy + statueWidth && px > sx;
+		}
+		else if (orientation >= 256 && orientation < 768)
+		{
+			return py >= sy && py < sy + statueWidth && px < sx;
+		}
+		else if (orientation >= 768 && orientation < 1280)
+		{
+			return px >= sx && px < sx + statueWidth && py > sy;
+		}
+		else
+		{
+			return px >= sx && px < sx + statueWidth && py < sy;
+		}
+	}
+
+	private static class BorderColorCache
+	{
+		private Color lastInput;
+		private Color cachedBorder;
+
+		Color get(Color color)
+		{
+			if (!color.equals(lastInput))
+			{
+				lastInput = color;
+				cachedBorder = toOpaque(color);
+			}
+			return cachedBorder;
+		}
 	}
 }

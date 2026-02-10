@@ -12,8 +12,15 @@ public class CrossbowStatue
 {
 	private final GameObject gameObject;
 
+	private int cachedAnimationId = -1;
+
+	public void onGameTick()
+	{
+		cachedAnimationId = GameObjectUtil.getAnimationId(gameObject);
+	}
+
 	public boolean isDangerous()
 	{
-		return SepulchreConstants.CROSSBOW_DANGER_ANIMS.contains(GameObjectUtil.getAnimationId(gameObject));
+		return SepulchreConstants.CROSSBOW_DANGER_ANIMS.contains(cachedAnimationId);
 	}
 }
