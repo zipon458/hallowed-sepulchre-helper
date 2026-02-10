@@ -80,8 +80,12 @@ public class SepulchrePlugin extends Plugin
 	private int pendingRouteFloor = 0;
 
 	private boolean earlyDetected = false;
+	private boolean floorTransitionDetected = false;
+	private boolean pendingFloorTransition = false;
+	private int pendingTransitionFloor = 0;
+	private int ticksSinceLoggedIn = 0;
 
-@Override
+	@Override
 	protected void startUp()
 	{
 		overlayManager.add(sceneOverlay);
@@ -104,6 +108,9 @@ public class SepulchrePlugin extends Plugin
 	{
 		inSepulchre = false;
 		earlyDetected = false;
+		floorTransitionDetected = false;
+		pendingFloorTransition = false;
+		pendingTransitionFloor = 0;
 		pendingLocationVerification = false;
 		verifiedThisTick = false;
 		pendingRouteClassification = false;
@@ -141,6 +148,10 @@ public class SepulchrePlugin extends Plugin
 		if (state == GameState.LOGIN_SCREEN || state == GameState.HOPPING)
 		{
 			reset();
+		}
+		else if (state == GameState.LOGGED_IN)
+		{
+			ticksSinceLoggedIn = 0;
 		}
 		else if (state == GameState.LOADING)
 		{
@@ -185,6 +196,8 @@ public class SepulchrePlugin extends Plugin
 			return;
 		}
 
+		ticksSinceLoggedIn++;
+
 		if (!inSepulchre && !earlyDetected)
 		{
 			tryEarlyActivation();
@@ -202,6 +215,32 @@ public class SepulchrePlugin extends Plugin
 			obstacleHandler.clearSavedProjectileNpcs();
 			obstacleHandler.clearSavedPortalState();
 			obstacleHandler.scanForExistingGroundObjects();
+
+			// Start polling for floor transition
+			// but their coords may not match a spawn tile until a tick or two later.
+			int currentFloor = obstacleHandler.getCurrentFloor();
+			if (currentFloor > 0 && currentFloor < 5)
+			{
+				pendingFloorTransition = true;
+				pendingTransitionFloor = currentFloor + 1;
+			}
+		}
+
+		// Poll each tick for floor transition: check if player coords match the next floor's spawn tile.
+		// Give up after 5 ticks — if we haven't matched by then, it was a mid-floor loading line,
+		// not a floor transition. The chat message fallback will handle it if needed.
+		if (pendingFloorTransition && inSepulchre)
+		{
+			if (tryDetectFloorTransition())
+			{
+				pendingFloorTransition = false;
+				pendingTransitionFloor = 0;
+			}
+			else if (ticksSinceLoggedIn > 5)
+			{
+				pendingFloorTransition = false;
+				pendingTransitionFloor = 0;
+			}
 		}
 
 		if (pendingRouteClassification && inSepulchre)
@@ -267,6 +306,68 @@ public class SepulchrePlugin extends Plugin
 				return;
 			}
 		}
+	}
+
+	/**
+	 * Polls the player's coordinates to check if they match a spawn tile on the expected
+	 * next floor. Called each tick while pendingFloorTransition is true.
+	 * Returns true if a floor transition was detected (and state updated), false otherwise.
+	 */
+	private boolean tryDetectFloorTransition()
+	{
+		Player player = client.getLocalPlayer();
+		if (player == null)
+		{
+			return false;
+		}
+
+		LocalPoint localPoint = player.getLocalLocation();
+		if (localPoint == null)
+		{
+			return false;
+		}
+
+		WorldPoint canonical = WorldPoint.fromLocalInstance(client, localPoint);
+		if (canonical == null)
+		{
+			return false;
+		}
+
+		int targetFloor = pendingTransitionFloor;
+
+		if (targetFloor == 5)
+		{
+			// Floor 5 has no spawn tile map — detect by confirming coords don't match current floor
+			int currentFloor = obstacleHandler.getCurrentFloor();
+			Map<WorldPoint, SepulchreRoute> currentFloorTiles = SepulchreConstants.getSpawnTilesForFloor(currentFloor);
+			if (currentFloorTiles != null && !currentFloorTiles.containsKey(canonical))
+			{
+				floorTransitionDetected = true;
+				obstacleHandler.onFloorEntered(false);
+				obstacleHandler.setFloorStartPlane(canonical.getPlane());
+				obstacleHandler.setCurrentRoute(SepulchreRoute.FLOOR_5_SINGLE);
+				return true;
+			}
+			return false;
+		}
+
+		Map<WorldPoint, SepulchreRoute> targetFloorTiles = SepulchreConstants.getSpawnTilesForFloor(targetFloor);
+		if (targetFloorTiles == null || targetFloorTiles.isEmpty())
+		{
+			return false;
+		}
+
+		SepulchreRoute route = targetFloorTiles.get(canonical);
+		if (route != null)
+		{
+			floorTransitionDetected = true;
+			obstacleHandler.onFloorEntered(false);
+			obstacleHandler.setFloorStartPlane(canonical.getPlane());
+			obstacleHandler.setCurrentRoute(route);
+			return true;
+		}
+
+		return false;
 	}
 
 	private void onSepulchreObjectDetected()
@@ -410,9 +511,20 @@ public class SepulchrePlugin extends Plugin
 
 		if (message.contains(SepulchreConstants.FLOOR_CHANGE_MESSAGE))
 		{
-			obstacleHandler.onFloorEntered(false);
-			pendingRouteClassification = true;
-			pendingRouteFloor = obstacleHandler.getCurrentFloor();
+			if (floorTransitionDetected)
+			{
+				// Already detected via spawn tile polling — skip to avoid double-increment
+				floorTransitionDetected = false;
+			}
+			else
+			{
+				// Fallback: detect floor transition from chat message
+				pendingFloorTransition = false;
+				pendingTransitionFloor = 0;
+				obstacleHandler.onFloorEntered(false);
+				pendingRouteClassification = true;
+				pendingRouteFloor = obstacleHandler.getCurrentFloor();
+			}
 		}
 		else if (message.contains(SepulchreConstants.FLOOR_1_MESSAGE))
 		{
