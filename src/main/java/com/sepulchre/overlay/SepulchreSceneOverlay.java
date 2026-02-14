@@ -2,7 +2,8 @@ package com.sepulchre.overlay;
 
 import com.sepulchre.SepulchrePlugin;
 import com.sepulchre.config.HighlightStyle;
-import com.sepulchre.config.PortalDisplayMode;
+import com.sepulchre.config.WizardHighlightStyle;
+import com.sepulchre.util.GameObjectUtil;
 import com.sepulchre.config.SepulchreConfig;
 import com.sepulchre.handler.ObstacleHandler;
 import com.sepulchre.model.CrossbowStatue;
@@ -13,13 +14,13 @@ import com.sepulchre.util.SepulchreConstants;
 import com.sepulchre.util.SkillObstacleRequirements;
 import net.runelite.api.Client;
 import net.runelite.api.GameObject;
+import net.runelite.api.GraphicsObject;
 import net.runelite.api.GroundObject;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.ObjectComposition;
 import net.runelite.api.Perspective;
 import net.runelite.api.Player;
-import net.runelite.api.Point;
 import net.runelite.api.TileObject;
 import net.runelite.api.WallObject;
 import net.runelite.api.coords.LocalPoint;
@@ -29,7 +30,6 @@ import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
-import net.runelite.client.ui.overlay.OverlayUtil;
 
 import javax.inject.Inject;
 import java.awt.BasicStroke;
@@ -39,6 +39,7 @@ import java.awt.Graphics2D;
 import java.awt.Polygon;
 import java.awt.Shape;
 import java.awt.Stroke;
+import java.util.HashSet;
 import java.util.Set;
 
 public class SepulchreSceneOverlay extends Overlay
@@ -52,18 +53,14 @@ public class SepulchreSceneOverlay extends Overlay
 	private final ModelOutlineRenderer modelOutlineRenderer;
 	private final SkillObstacleRequirements requirements;
 
-	private Stroke cachedFireStroke;
-	private int cachedFireStrokeWidth = -1;
-
 	private Stroke cachedProjectileStroke;
 	private int cachedProjectileStrokeWidth = -1;
 
 	private Stroke cachedCrossbowStroke;
 	private int cachedCrossbowStrokeWidth = -1;
 
-	private Color cachedFireBorderColor;
-	private int cachedFireBorderOpacity = -1;
-	private Color cachedFireBaseColor;
+	private Stroke cachedStatueStroke;
+	private int cachedStatueStrokeWidth = -1;
 
 	private final BorderColorCache obeliskBorderCache = new BorderColorCache();
 	private final BorderColorCache coffinBorderCache = new BorderColorCache();
@@ -103,6 +100,7 @@ public class SepulchreSceneOverlay extends Overlay
 		renderLightning(graphics, playerPlane);
 		renderCrossbowStatues(graphics, playerPlane);
 		renderWizardStatues(graphics, playerPlane);
+		renderWizardFires(graphics, playerPlane);
 		renderSwordStatues(graphics, playerPlane);
 		renderBoltNpcs(graphics, playerPlane);
 		renderSwordNpcs(graphics, playerPlane);
@@ -116,17 +114,6 @@ public class SepulchreSceneOverlay extends Overlay
 		renderPlayerImmunity(graphics);
 
 		return null;
-	}
-
-	private Stroke getDangerBorderStroke()
-	{
-		int width = Math.max(1, Math.min(5, config.dangerBorderWidth()));
-		if (width != cachedFireStrokeWidth)
-		{
-			cachedFireStrokeWidth = width;
-			cachedFireStroke = new BasicStroke(width);
-		}
-		return cachedFireStroke;
 	}
 
 	private Stroke getProjectileBorderStroke()
@@ -151,16 +138,15 @@ public class SepulchreSceneOverlay extends Overlay
 		return cachedCrossbowStroke;
 	}
 
-	private Color getDangerBorderColor(Color baseColor)
+	private Stroke getStatueBorderStroke()
 	{
-		int borderOpacity = Math.max(0, Math.min(255, config.dangerBorderOpacity()));
-		if (borderOpacity != cachedFireBorderOpacity || !baseColor.equals(cachedFireBaseColor))
+		int width = Math.max(1, Math.min(5, config.statueBorderWidth()));
+		if (width != cachedStatueStrokeWidth)
 		{
-			cachedFireBorderOpacity = borderOpacity;
-			cachedFireBaseColor = baseColor;
-			cachedFireBorderColor = new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), borderOpacity);
+			cachedStatueStrokeWidth = width;
+			cachedStatueStroke = new BasicStroke(width);
 		}
-		return cachedFireBorderColor;
+		return cachedStatueStroke;
 	}
 
 	private static Color toOpaque(Color color)
@@ -227,20 +213,6 @@ public class SepulchreSceneOverlay extends Overlay
 		}
 
 		return Perspective.getCanvasTilePoly(client, localPoint);
-	}
-
-	private WorldPoint getCanonicalFromInstance(WorldPoint instancePoint)
-	{
-		if (instancePoint == null)
-		{
-			return null;
-		}
-		LocalPoint localPoint = LocalPoint.fromWorld(client, instancePoint);
-		if (localPoint == null)
-		{
-			return null;
-		}
-		return WorldPoint.fromLocalInstance(client, localPoint);
 	}
 
 	private void renderLightning(Graphics2D graphics, int playerPlane)
@@ -330,16 +302,19 @@ public class SepulchreSceneOverlay extends Overlay
 
 	private void renderWizardStatues(Graphics2D graphics, int playerPlane)
 	{
-		boolean showTickCounter = config.wizardTickCounter();
-		boolean showDanger = config.showDanger();
-		boolean showWarning = config.showWarning();
+		boolean highlightStatues = config.highlightStatues();
 
-		if (!showTickCounter && !showDanger && !showWarning)
+		if (!highlightStatues)
 		{
 			return;
 		}
 
-		Stroke dangerStroke = getDangerBorderStroke();
+		WizardHighlightStyle style = config.statueHighlightStyle();
+		Stroke statueStroke = getStatueBorderStroke();
+		Color dangerFill = config.statueDangerFill();
+		Color dangerBorder = config.statueDangerBorder();
+		Color warningFill = config.statueWarningFill();
+		Color warningBorder = config.statueWarningBorder();
 
 		for (WizardStatue statue : obstacleHandler.getWizardStatues())
 		{
@@ -365,53 +340,66 @@ public class SepulchreSceneOverlay extends Overlay
 			}
 
 			boolean isFiring = statue.isFiring();
-			Color color = isFiring ? config.dangerColor() : config.warningColor();
+			Color fillColor = isFiring ? dangerFill : warningFill;
+			Color borderColor = isFiring ? dangerBorder : warningBorder;
 
-			if (showTickCounter)
+			if (highlightStatues)
 			{
-				String tickDisplay = statue.getDisplayTicks();
-				LocalPoint statueLocal = statue.getGameObject().getLocalLocation();
-				if (statueLocal != null)
-				{
-					Point textLocation = Perspective.getCanvasTextLocation(client, graphics, statueLocal, tickDisplay, 0);
-					if (textLocation != null)
-					{
-						OverlayUtil.renderTextLocation(graphics, textLocation, tickDisplay, color);
-					}
-				}
+				HighlightStyle hlStyle = style == WizardHighlightStyle.HULL
+					? HighlightStyle.HULL : HighlightStyle.CLICKBOX;
+				renderGameObject(graphics, statueObj, fillColor, borderColor, hlStyle, statueStroke);
 			}
+		}
+	}
 
-			boolean shouldShowTiles = (isFiring && showDanger) || (!isFiring && showWarning);
-			if (!shouldShowTiles)
+	private void renderWizardFires(Graphics2D graphics, int playerPlane)
+	{
+		if (!config.highlightWizardFire())
+		{
+			return;
+		}
+
+		Color color = config.wizardFireOutlineColor();
+		boolean routeFilterEnabled = config.filterByRoute();
+
+		for (GameObject fire : obstacleHandler.getWizardFires())
+		{
+			WorldPoint fireLocation = fire.getWorldLocation();
+			if (fireLocation.getPlane() != playerPlane)
 			{
 				continue;
 			}
 
-			Color borderColor = getDangerBorderColor(color);
-
-			for (WorldPoint fireTile : statue.getFireTiles())
+			int animId = GameObjectUtil.getAnimationId(fire);
+			if (animId != 8661 && animId != 8662)
 			{
-				Polygon poly = getTilePolygon(fireTile, playerPlane);
-				if (poly != null)
-				{
-					renderTilePolygon(graphics, poly, color, borderColor, dangerStroke);
-				}
+				continue;
 			}
+
+			if (routeFilterEnabled && !isWizardFireOnCurrentRoute(fireLocation))
+			{
+				continue;
+			}
+
+			modelOutlineRenderer.drawOutline(fire, 2, color, 4);
 		}
 	}
 
 	private void renderSwordStatues(Graphics2D graphics, int playerPlane)
 	{
-		boolean showTickCounter = config.knightTickCounter();
-		boolean showDanger = config.showDanger();
-		boolean showWarning = config.showWarning();
+		boolean highlightStatues = config.highlightStatues();
 
-		if (!showTickCounter && !showDanger && !showWarning)
+		if (!highlightStatues)
 		{
 			return;
 		}
 
-		Stroke dangerStroke = getDangerBorderStroke();
+		WizardHighlightStyle style = config.statueHighlightStyle();
+		Stroke statueStroke = getStatueBorderStroke();
+		Color dangerFill = config.statueDangerFill();
+		Color dangerBorder = config.statueDangerBorder();
+		Color warningFill = config.statueWarningFill();
+		Color warningBorder = config.statueWarningBorder();
 
 		for (SwordStatue statue : obstacleHandler.getSwordStatues())
 		{
@@ -432,38 +420,14 @@ public class SepulchreSceneOverlay extends Overlay
 			}
 
 			boolean isImminent = statue.isInImminentDangerState();
-			Color fillColor = isImminent ? config.dangerColor() : config.warningColor();
-			Color borderColor = getDangerBorderColor(fillColor);
+			Color fillColor = isImminent ? dangerFill : warningFill;
+			Color borderColor = isImminent ? dangerBorder : warningBorder;
 
-			WorldPoint dangerCenter = statue.getDangerZoneCenter();
-			if (dangerCenter != null)
+			if (highlightStatues)
 			{
-				LocalPoint dangerLocal = LocalPoint.fromWorld(client, dangerCenter);
-				if (dangerLocal != null)
-				{
-					boolean shouldShowTiles = (isImminent && showDanger) || (!isImminent && showWarning);
-					if (shouldShowTiles)
-					{
-						Polygon poly = Perspective.getCanvasTileAreaPoly(client, dangerLocal, 3);
-						if (poly != null)
-						{
-							renderTilePolygon(graphics, poly, fillColor, borderColor, dangerStroke);
-						}
-					}
-
-					if (showTickCounter)
-					{
-						String tickDisplay = statue.getDisplayTicks();
-						if (tickDisplay != null)
-						{
-							Point textLocation = Perspective.getCanvasTextLocation(client, graphics, dangerLocal, tickDisplay, 0);
-							if (textLocation != null)
-							{
-								OverlayUtil.renderTextLocation(graphics, textLocation, tickDisplay, toOpaque(fillColor));
-							}
-						}
-					}
-				}
+				HighlightStyle hlStyle = style == WizardHighlightStyle.HULL
+					? HighlightStyle.HULL : HighlightStyle.CLICKBOX;
+				renderGameObject(graphics, statueObj, fillColor, borderColor, hlStyle, statueStroke);
 			}
 		}
 	}
@@ -559,63 +523,81 @@ public class SepulchreSceneOverlay extends Overlay
 
 	private void renderPortals(Graphics2D graphics, int playerPlane)
 	{
-		renderPortalSet(graphics, playerPlane, obstacleHandler.getActiveYellowPortals(),
-			config.portalYellowColor(), getYellowPortalBorderColor(),
-			config.yellowPortalDisplay(), true);
-
-		renderPortalSet(graphics, playerPlane, obstacleHandler.getActiveBluePortals(),
-			config.portalBlueColor(), getBluePortalBorderColor(),
-			config.bluePortalDisplay(), false);
-	}
-
-	private void renderPortalSet(Graphics2D graphics, int playerPlane, Set<WorldPoint> portals,
-		Color fillColor, Color borderColor, PortalDisplayMode displayMode, boolean isYellow)
-	{
-		if (displayMode == PortalDisplayMode.NONE)
+		if (config.highlightYellowPortals())
 		{
-			return;
+			renderPortalHighlights(graphics, playerPlane, obstacleHandler.getActiveYellowPortals(),
+				SepulchreConstants.YELLOW_PORTAL_GRAPHICS_IDS, config.portalYellowColor(),
+				getYellowPortalBorderColor());
 		}
 
-		boolean showTile = displayMode.showTile();
-		boolean showCountdown = displayMode.showCountdown();
-
-		for (WorldPoint portalLocation : portals)
+		if (config.highlightBluePortals())
 		{
+			renderPortalHighlights(graphics, playerPlane, obstacleHandler.getActiveBluePortals(),
+				SepulchreConstants.BLUE_PORTAL_GRAPHICS_IDS, config.portalBlueColor(),
+				getBluePortalBorderColor());
+		}
+	}
+
+	private void renderPortalHighlights(Graphics2D graphics, int playerPlane, Set<WorldPoint> trackedPortals,
+		Set<Integer> portalGraphicsIds, Color fillColor, Color borderColor)
+	{
+		Set<WorldPoint> outlinedPortals = new HashSet<>();
+
+		for (GraphicsObject graphicsObject : client.getGraphicsObjects())
+		{
+			if (!portalGraphicsIds.contains(graphicsObject.getId()))
+			{
+				continue;
+			}
+
+			if (graphicsObject.getLevel() != playerPlane)
+			{
+				continue;
+			}
+
+			LocalPoint localPoint = graphicsObject.getLocation();
+			if (localPoint == null)
+			{
+				continue;
+			}
+
+			WorldPoint worldPoint = WorldPoint.fromLocal(client, localPoint);
+			if (worldPoint == null)
+			{
+				continue;
+			}
+
+			if (!obstacleHandler.shouldShowForCurrentRoute(worldPoint))
+			{
+				continue;
+			}
+
+			modelOutlineRenderer.drawOutline(graphicsObject, 2, borderColor, 4);
+			outlinedPortals.add(worldPoint);
+		}
+
+		// Fallback for loading-line transitions when portal graphics are briefly unavailable.
+		for (WorldPoint portalLocation : trackedPortals)
+		{
+			if (portalLocation.getPlane() != playerPlane)
+			{
+				continue;
+			}
+
+			if (outlinedPortals.contains(portalLocation))
+			{
+				continue;
+			}
+
 			if (!obstacleHandler.shouldShowForCurrentRoute(portalLocation))
 			{
 				continue;
 			}
 
 			Polygon poly = getTilePolygon(portalLocation, playerPlane);
-			if (poly == null)
-			{
-				continue;
-			}
-
-			if (showTile)
+			if (poly != null)
 			{
 				renderTilePolygon(graphics, poly, fillColor, borderColor, DEFAULT_STROKE);
-			}
-
-			if (showCountdown)
-			{
-				int remainingTicks = isYellow
-					? obstacleHandler.getYellowPortalRemainingTicks(portalLocation)
-					: obstacleHandler.getBluePortalRemainingTicks(portalLocation);
-				if (remainingTicks > 0)
-				{
-					LocalPoint localPoint = LocalPoint.fromWorld(client, portalLocation);
-					if (localPoint != null)
-					{
-						String countdownText = String.valueOf(remainingTicks - 1);
-						Point textLocation = Perspective.getCanvasTextLocation(
-							client, graphics, localPoint, countdownText, 0);
-						if (textLocation != null)
-						{
-							OverlayUtil.renderTextLocation(graphics, textLocation, countdownText, borderColor);
-						}
-					}
-				}
 			}
 		}
 	}
@@ -1050,6 +1032,30 @@ public class SepulchreSceneOverlay extends Overlay
 	{
 		return findFiringStatue(obstacleHandler.getSwordStatues(), SwordStatue::getGameObject,
 			projectileLocation, onlyCurrentRoute);
+	}
+
+	private boolean isWizardFireOnCurrentRoute(WorldPoint fireLocation)
+	{
+		for (WizardStatue wizard : obstacleHandler.getWizardStatues())
+		{
+			GameObject statueObj = wizard.getGameObject();
+			if (statueObj.getWorldLocation().getPlane() != fireLocation.getPlane())
+			{
+				continue;
+			}
+
+			if (!obstacleHandler.shouldShowForCurrentRoute(statueObj.getLocalLocation()))
+			{
+				continue;
+			}
+
+			if (wizard.getFireTiles().contains(fireLocation))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private <T> T findFiringStatue(Iterable<T> statues, java.util.function.Function<T, GameObject> getObj,

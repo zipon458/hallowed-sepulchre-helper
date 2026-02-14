@@ -4,8 +4,6 @@ import com.sepulchre.SepulchrePlugin;
 import com.sepulchre.config.SepulchreConfig;
 import com.sepulchre.handler.ObstacleHandler;
 import com.sepulchre.model.SepulchreRoute;
-import net.runelite.api.Client;
-import net.runelite.api.Player;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -74,16 +72,14 @@ public class InfoPanelOverlay extends OverlayPanel
 	private final SepulchrePlugin plugin;
 	private final SepulchreConfig config;
 	private final ObstacleHandler obstacleHandler;
-	private final Client client;
 
 	@Inject
 	public InfoPanelOverlay(SepulchrePlugin plugin, SepulchreConfig config,
-		ObstacleHandler obstacleHandler, Client client)
+		ObstacleHandler obstacleHandler)
 	{
 		this.plugin = plugin;
 		this.config = config;
 		this.obstacleHandler = obstacleHandler;
-		this.client = client;
 
 		setPosition(OverlayPosition.TOP_LEFT);
 		setLayer(OverlayLayer.ABOVE_WIDGETS);
@@ -181,49 +177,7 @@ public class InfoPanelOverlay extends OverlayPanel
 			}
 		}
 
-		if (config.showFloor4CycleOverlay() && floor == 4)
-		{
-			Player player = client.getLocalPlayer();
-			if (player != null)
-			{
-				int playerX = player.getWorldLocation().getX();
-				int playerY = player.getWorldLocation().getY();
-				if (obstacleHandler.getWizardCyclePhaseTracker().isPlayerInRange(playerX, playerY))
-				{
-					String cycleText = obstacleHandler.getFloor4CycleDisplayText();
-					if (cycleText != null)
-					{
-						int currentCycle = obstacleHandler.getFloor4CurrentCycle();
-						Color cycleColor = getFloor4CycleColor(currentCycle);
-
-						panelComponent.getChildren().add(LineComponent.builder()
-							.left("Cycle:")
-							.right(cycleText)
-							.rightColor(cycleColor)
-							.build());
-					}
-				}
-			}
-		}
-
 		return super.render(graphics);
-	}
-
-	private Color getFloor4CycleColor(int cycle)
-	{
-		switch (cycle)
-		{
-			case 1:
-			case 2:
-				return Color.GREEN;
-			case 3:
-			case 4:
-				return Color.YELLOW;
-			case 5:
-				return Color.RED;
-			default:
-				return Color.WHITE;
-		}
 	}
 
 	private String formatFloorTime(int ticks)

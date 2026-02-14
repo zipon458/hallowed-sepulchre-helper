@@ -28,7 +28,7 @@ public class ProjectileTracker
 	private final Set<NPC> swordNpcs = new HashSet<>();
 	private final Set<WorldPoint> activeYellowPortals = new HashSet<>();
 	private final Set<WorldPoint> activeBluePortals = new HashSet<>();
-	private final Map<WorldPoint, Integer> activePortalGraphics = new HashMap<>();
+	private final Map<WorldPoint, Integer> activePortalTicks = new HashMap<>();
 	private final Map<WorldPoint, Integer> pendingLightning = new HashMap<>();
 
 	private int playerImmunityTicks = 0;
@@ -37,7 +37,7 @@ public class ProjectileTracker
 	private final Set<NPC> savedBoltNpcs = new HashSet<>();
 	private final Set<WorldPoint> savedYellowPortals = new HashSet<>();
 	private final Set<WorldPoint> savedBluePortals = new HashSet<>();
-	private final Map<WorldPoint, Integer> savedPortalGraphics = new HashMap<>();
+	private final Map<WorldPoint, Integer> savedPortalTicks = new HashMap<>();
 
 	public ProjectileTracker(Client client)
 	{
@@ -86,12 +86,12 @@ public class ProjectileTracker
 		if (SepulchreConstants.YELLOW_PORTAL_GRAPHICS_IDS.contains(graphicsId))
 		{
 			activeYellowPortals.add(location);
-			activePortalGraphics.put(location, 5);
+			activePortalTicks.put(location, 5);
 		}
 		else if (SepulchreConstants.BLUE_PORTAL_GRAPHICS_IDS.contains(graphicsId))
 		{
 			activeBluePortals.add(location);
-			activePortalGraphics.put(location, 5);
+			activePortalTicks.put(location, 5);
 		}
 
 		if (graphicsId == SepulchreConstants.BLUE_PORTAL_TELEPORT_GRAPHICS_ID
@@ -112,13 +112,13 @@ public class ProjectileTracker
 	{
 		activeLightning.removeIf(LightningStrike::isExpired);
 
-		activePortalGraphics.entrySet().removeIf(entry -> {
+		activePortalTicks.entrySet().removeIf(entry -> {
 			int remaining = entry.getValue() - 1;
 			if (remaining <= 0)
 			{
-				WorldPoint loc = entry.getKey();
-				activeYellowPortals.remove(loc);
-				activeBluePortals.remove(loc);
+				WorldPoint location = entry.getKey();
+				activeYellowPortals.remove(location);
+				activeBluePortals.remove(location);
 				return true;
 			}
 			entry.setValue(remaining);
@@ -157,26 +157,6 @@ public class ProjectileTracker
 		return false;
 	}
 
-	public int getBluePortalRemainingTicks(WorldPoint location)
-	{
-		return getPortalRemainingTicks(location, activeBluePortals);
-	}
-
-	public int getYellowPortalRemainingTicks(WorldPoint location)
-	{
-		return getPortalRemainingTicks(location, activeYellowPortals);
-	}
-
-	private int getPortalRemainingTicks(WorldPoint location, Set<WorldPoint> activePortals)
-	{
-		if (!activePortals.contains(location))
-		{
-			return -1;
-		}
-		Integer remaining = activePortalGraphics.get(location);
-		return remaining != null ? remaining : -1;
-	}
-
 	public void saveProjectileNpcs()
 	{
 		savedSwordNpcs.clear();
@@ -203,22 +183,22 @@ public class ProjectileTracker
 		savedYellowPortals.addAll(activeYellowPortals);
 		savedBluePortals.clear();
 		savedBluePortals.addAll(activeBluePortals);
-		savedPortalGraphics.clear();
-		savedPortalGraphics.putAll(activePortalGraphics);
+		savedPortalTicks.clear();
+		savedPortalTicks.putAll(activePortalTicks);
 	}
 
 	public void restorePortalState()
 	{
 		activeYellowPortals.addAll(savedYellowPortals);
 		activeBluePortals.addAll(savedBluePortals);
-		activePortalGraphics.putAll(savedPortalGraphics);
+		activePortalTicks.putAll(savedPortalTicks);
 	}
 
 	public void clearSavedPortalState()
 	{
 		savedYellowPortals.clear();
 		savedBluePortals.clear();
-		savedPortalGraphics.clear();
+		savedPortalTicks.clear();
 	}
 
 	public void reset()
@@ -228,7 +208,7 @@ public class ProjectileTracker
 		swordNpcs.clear();
 		activeYellowPortals.clear();
 		activeBluePortals.clear();
-		activePortalGraphics.clear();
+		activePortalTicks.clear();
 		pendingLightning.clear();
 		playerImmunityTicks = 0;
 	}

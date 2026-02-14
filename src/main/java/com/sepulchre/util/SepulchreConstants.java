@@ -74,6 +74,7 @@ public final class SepulchreConstants
 		38416, 38417, 38418, 38419, 38420,
 		38421, 38422, 38423, 38424, 38425
 	);
+	public static final int WIZARD_FIRE_OBJECT_ID = 38427;
 	public static final int WIZARD_ANIM_FIRE = 8658;
 	public static final int WIZARD_ANIM_WARNING = 8657;
 	public static final int WIZARD_ANIM_PRE_WARNING = 8656;

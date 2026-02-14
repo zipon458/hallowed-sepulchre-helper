@@ -35,36 +35,6 @@ public class SwordStatue
 		}
 	}
 
-	public WorldPoint getDangerZoneCenter()
-	{
-		int orientation = gameObject.getOrientation();
-		int dx = 0;
-		int dy = 0;
-
-		if (orientation >= 256 && orientation < 768)
-		{
-			dx = -2;
-		}
-		else if (orientation >= 768 && orientation < 1280)
-		{
-			dy = 2;
-		}
-		else if (orientation >= 1280 && orientation < 1792)
-		{
-			dx = 2;
-		}
-		else
-		{
-			dy = -2;
-		}
-
-		return new WorldPoint(
-			location.getX() + dx,
-			location.getY() + dy,
-			location.getPlane()
-		);
-	}
-
 	public void onGameTick()
 	{
 		cachedAnimationId = GameObjectUtil.getAnimationId(gameObject);
@@ -96,18 +66,5 @@ public class SwordStatue
 	public boolean isInImminentDangerState()
 	{
 		return cachedAnimationId == windup1Anim || cachedAnimationId == SepulchreConstants.SWORD_STATUE_ANIM_WINDUP_2;
-	}
-
-	public String getDisplayTicks()
-	{
-		if (cachedAnimationId == windup1Anim)
-		{
-			return "1";
-		}
-		if (cachedAnimationId == SepulchreConstants.SWORD_STATUE_ANIM_WINDUP_2)
-		{
-			return "0";
-		}
-		return null;
 	}
 }

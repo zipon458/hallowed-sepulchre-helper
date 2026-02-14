@@ -25,22 +25,6 @@ public class WizardStatue
 	@Setter
 	private int ticksSinceSpawn = 0;
 
-	@Setter
-	private int tickCounter = -1;
-
-	@Setter
-	private int firePhaseTicks = 2;
-
-	@Setter
-	private int safePhaseTicks = 1;
-
-	@Setter
-	private int warningPhaseTicks = 2;
-
-	private boolean wasFiringLastTick = false;
-	private boolean wasWarningLastTick = false;
-	private boolean isFirstTick = true;
-
 	private int cachedAnimationId = -1;
 
 	public WizardStatue(GameObject gameObject)
@@ -80,49 +64,11 @@ public class WizardStatue
 	public void onGameTick()
 	{
 		cachedAnimationId = GameObjectUtil.getAnimationId(gameObject);
-		boolean currentlyFiring = isFiring();
-		boolean currentlyWarning = isWarning();
-
-		if (isFirstTick)
-		{
-			isFirstTick = false;
-		}
-		else
-		{
-			if (currentlyFiring && !wasFiringLastTick)
-			{
-				tickCounter = firePhaseTicks;
-			}
-			else if (currentlyWarning && !wasWarningLastTick && !currentlyFiring)
-			{
-				tickCounter = warningPhaseTicks;
-			}
-			else if (!currentlyFiring && wasFiringLastTick)
-			{
-				tickCounter = safePhaseTicks;
-			}
-			else if (tickCounter > 0)
-			{
-				tickCounter--;
-			}
-		}
-
-		if (currentlyFiring || currentlyWarning)
+		if (isFiring() || isWarning())
 		{
 			hasEverFired = true;
 		}
 
-		wasFiringLastTick = currentlyFiring;
-		wasWarningLastTick = currentlyWarning;
 		ticksSinceSpawn++;
-	}
-
-	public String getDisplayTicks()
-	{
-		if (tickCounter < 0)
-		{
-			return "?";
-		}
-		return String.valueOf(tickCounter);
 	}
 }

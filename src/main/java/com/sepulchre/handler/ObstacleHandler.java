@@ -2,7 +2,6 @@ package com.sepulchre.handler;
 
 import com.sepulchre.config.SepulchreConfig;
 import com.sepulchre.model.CrossbowStatue;
-import com.sepulchre.model.WizardCyclePhaseTracker;
 import com.sepulchre.model.LightningStrike;
 import com.sepulchre.model.SepulchreRoute;
 import com.sepulchre.model.SwordStatue;
@@ -31,7 +30,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @Singleton
@@ -54,6 +52,9 @@ public class ObstacleHandler
 
 	@Getter
 	private final List<SwordStatue> swordStatues = new ArrayList<>();
+
+	@Getter
+	private final List<GameObject> wizardFires = new ArrayList<>();
 
 	@Getter
 	private final List<GameObject> magicalObelisks = new ArrayList<>();
@@ -93,9 +94,6 @@ public class ObstacleHandler
 
 	@Getter
 	private final SkillObstacleManager skillObstacleManager;
-
-	@Getter
-	private final WizardCyclePhaseTracker wizardCyclePhaseTracker = new WizardCyclePhaseTracker();
 
 	@Getter
 	private final FloorState floorState;
@@ -216,39 +214,14 @@ public class ObstacleHandler
 		return projectileTracker.getActiveBluePortals();
 	}
 
-	public Map<WorldPoint, Integer> getActivePortalGraphics()
-	{
-		return projectileTracker.getActivePortalGraphics();
-	}
-
 	public int getPlayerImmunityTicks()
 	{
 		return projectileTracker.getPlayerImmunityTicks();
 	}
 
-	public int getBluePortalRemainingTicks(WorldPoint location)
-	{
-		return projectileTracker.getBluePortalRemainingTicks(location);
-	}
-
-	public int getYellowPortalRemainingTicks(WorldPoint location)
-	{
-		return projectileTracker.getYellowPortalRemainingTicks(location);
-	}
-
 	public boolean isPlayerImmune()
 	{
 		return projectileTracker.isPlayerImmune();
-	}
-
-	public String getFloor4CycleDisplayText()
-	{
-		return wizardCyclePhaseTracker.getDisplayText();
-	}
-
-	public int getFloor4CurrentCycle()
-	{
-		return wizardCyclePhaseTracker.getCurrentCycle();
 	}
 
 	public void onDoorToNextFloorClosed()
@@ -324,6 +297,7 @@ public class ObstacleHandler
 		projectileTracker.reset();
 		crossbowStatues.clear();
 		wizardStatues.clear();
+		wizardFires.clear();
 		swordStatues.clear();
 		magicalObelisks.clear();
 		coffins.clear();
@@ -339,7 +313,6 @@ public class ObstacleHandler
 		gates.clear();
 		skillObstacleManager.reset();
 		floorState.reset();
-		wizardCyclePhaseTracker.reset();
 	}
 
 	public void scanForExistingGroundObjects()
@@ -403,25 +376,12 @@ public class ObstacleHandler
 
 		for (WizardStatue wizard : wizardStatues)
 		{
-			if (floorState.getCurrentFloor() == 5)
-			{
-				wizard.setFirePhaseTicks(1);
-			}
-			else
-			{
-				wizard.setFirePhaseTicks(2);
-			}
 			wizard.onGameTick();
 		}
 
 		for (SwordStatue sword : swordStatues)
 		{
 			sword.onGameTick();
-		}
-
-		if (floorState.getCurrentFloor() == 4)
-		{
-			wizardCyclePhaseTracker.onGameTick(wizardStatues);
 		}
 
 		projectileTracker.onGameTick();
@@ -461,11 +421,17 @@ public class ObstacleHandler
 				}
 			}
 			WizardStatue wizard = new WizardStatue(gameObject);
-			wizard.setFirePhaseTicks(floorState.getCurrentFloor() == 5 ? 1 : 2);
-			wizard.setSafePhaseTicks(1);
-			wizard.setWarningPhaseTicks(2);
 			calculateWizardFlameFireTiles(wizard, gameObject.getOrientation());
 			wizardStatues.add(wizard);
+			return;
+		}
+
+		if (id == SepulchreConstants.WIZARD_FIRE_OBJECT_ID)
+		{
+			if (!wizardFires.contains(gameObject))
+			{
+				wizardFires.add(gameObject);
+			}
 			return;
 		}
 
@@ -580,6 +546,10 @@ public class ObstacleHandler
 		else if (SepulchreConstants.WIZARD_FLAME_OBJECT_IDS.contains(id))
 		{
 			wizardStatues.removeIf(statue -> statue.getGameObject() == gameObject);
+		}
+		else if (id == SepulchreConstants.WIZARD_FIRE_OBJECT_ID)
+		{
+			wizardFires.remove(gameObject);
 		}
 		else if (SepulchreConstants.SWORD_STATUE_IDS.contains(id))
 		{
