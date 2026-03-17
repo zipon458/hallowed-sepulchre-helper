@@ -96,35 +96,11 @@ public interface SepulchreConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "wizardTickCounter",
-		name = "Wizard Tick Counter",
-		description = "Show tick counter for wizard statues",
-		section = OBSTACLE_SECTION,
-		position = 0
-	)
-	default boolean wizardTickCounter()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "knightTickCounter",
-		name = "Knight Tick Counter",
-		description = "Show tick counter for knight statues",
-		section = OBSTACLE_SECTION,
-		position = 1
-	)
-	default boolean knightTickCounter()
-	{
-		return true;
-	}
-
-	@ConfigItem(
 		keyName = "highlightProjectiles",
 		name = "Highlight Projectiles",
 		description = "Highlight crossbow bolts and knight swords (You should disable this option in Agility plugin)",
 		section = OBSTACLE_SECTION,
-		position = 2
+		position = 0
 	)
 	default boolean highlightProjectiles()
 	{
@@ -132,24 +108,11 @@ public interface SepulchreConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "showFloor4CycleOverlay",
-		name = "Floor 4 Wizard Cycle",
-		description = "Show the current cycle (1-5) for the floor 4 wizard obstacle",
-		section = OVERLAY_SECTION,
-		position = 4
-	)
-	default boolean showFloor4CycleOverlay()
-	{
-		return true;
-	}
-
-
-	@ConfigItem(
 		keyName = "highlightCrossbows",
 		name = "Highlight Crossbowmen",
 		description = "",
 		section = OBSTACLE_SECTION,
-		position = 3
+		position = 1
 	)
 	default boolean highlightCrossbows()
 	{
@@ -161,7 +124,7 @@ public interface SepulchreConfig extends Config
 		name = "Crossbowmen Style",
 		description = "",
 		section = OBSTACLE_SECTION,
-		position = 4
+		position = 2
 	)
 	default HighlightStyle crossbowHighlightStyle()
 	{
@@ -169,27 +132,27 @@ public interface SepulchreConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "yellowPortalDisplay",
+		keyName = "highlightYellowPortals",
 		name = "Highlight Yellow Portals",
 		description = "",
 		section = OBSTACLE_SECTION,
-		position = 7
+		position = 3
 	)
-	default PortalDisplayMode yellowPortalDisplay()
+	default boolean highlightYellowPortals()
 	{
-		return PortalDisplayMode.BOTH;
+		return true;
 	}
 
 	@ConfigItem(
-		keyName = "bluePortalDisplay",
+		keyName = "highlightBluePortals",
 		name = "Highlight Blue Portals",
 		description = "",
 		section = OBSTACLE_SECTION,
-		position = 8
+		position = 4
 	)
-	default PortalDisplayMode bluePortalDisplay()
+	default boolean highlightBluePortals()
 	{
-		return PortalDisplayMode.BOTH;
+		return true;
 	}
 
 	@ConfigItem(
@@ -197,7 +160,7 @@ public interface SepulchreConfig extends Config
 		name = "Highlight Lightning",
 		description = "",
 		section = OBSTACLE_SECTION,
-		position = 9
+		position = 5
 	)
 	default boolean highlightLightning()
 	{
@@ -209,7 +172,7 @@ public interface SepulchreConfig extends Config
 		name = "Highlight Last Eligible Obelisk",
 		description = "Highlight the obelisk on your last eligible floor or when door closes",
 		section = OBSTACLE_SECTION,
-		position = 10
+		position = 6
 	)
 	default boolean highlightObelisk()
 	{
@@ -221,7 +184,7 @@ public interface SepulchreConfig extends Config
 		name = "Swap Obelisk Menu Entry",
 		description = "Swap 'Activate' with 'Quick-exit' on highlighted obelisk",
 		section = OBSTACLE_SECTION,
-		position = 11
+		position = 7
 	)
 	default boolean swapObeliskMenuEntry()
 	{
@@ -233,7 +196,7 @@ public interface SepulchreConfig extends Config
 		name = "Highlight Navigation",
 		description = "Highlight stairs, platforms, and gates that help navigate the sepulchre",
 		section = OBSTACLE_SECTION,
-		position = 12
+		position = 8
 	)
 	default boolean highlightNavigation()
 	{
@@ -245,7 +208,7 @@ public interface SepulchreConfig extends Config
 		name = "Only Show Current Route (Experimental)",
 		description = "Only show obstacles relevant to your current route (reduces clutter from parallel paths)",
 		section = OBSTACLE_SECTION,
-		position = 15
+		position = 9
 	)
 	default boolean filterByRoute()
 	{
@@ -337,23 +300,11 @@ public interface SepulchreConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "showWarning",
-		name = "Show Warning",
-		description = "Highlight tiles with incoming danger",
-		section = COLOR_SECTION,
-		position = 1
-	)
-	default boolean showWarning()
-	{
-		return true;
-	}
-
-	@ConfigItem(
 		keyName = "dangerBorderOpacity",
 		name = "Zones Border Opacity",
 		description = "",
 		section = COLOR_SECTION,
-		position = 2
+		position = 1
 	)
 	default int dangerBorderOpacity()
 	{
@@ -366,7 +317,7 @@ public interface SepulchreConfig extends Config
 		name = "Zones Border Width",
 		description = "",
 		section = COLOR_SECTION,
-		position = 3
+		position = 2
 	)
 	default int dangerBorderWidth()
 	{
@@ -379,7 +330,7 @@ public interface SepulchreConfig extends Config
 		name = "Danger Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 4
+		position = 3
 	)
 	default Color dangerColor()
 	{
@@ -388,24 +339,11 @@ public interface SepulchreConfig extends Config
 
 	@Alpha
 	@ConfigItem(
-		keyName = "warningColor",
-		name = "Warning Color",
-		description = "",
-		section = COLOR_SECTION,
-		position = 5
-	)
-	default Color warningColor()
-	{
-		return new Color(255, 165, 0, 100);
-	}
-
-	@Alpha
-	@ConfigItem(
 		keyName = "boltFillColor",
 		name = "Bolt Fill Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 6
+		position = 4
 	)
 	default Color boltFillColor()
 	{
@@ -418,7 +356,7 @@ public interface SepulchreConfig extends Config
 		name = "Bolt Border Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 7
+		position = 5
 	)
 	default Color boltBorderColor()
 	{
@@ -431,7 +369,7 @@ public interface SepulchreConfig extends Config
 		name = "Sword Projectile Fill Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 8
+		position = 6
 	)
 	default Color swordFillColor()
 	{
@@ -444,7 +382,7 @@ public interface SepulchreConfig extends Config
 		name = "Sword Projectile Border Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 9
+		position = 7
 	)
 	default Color swordBorderColor()
 	{
@@ -457,7 +395,7 @@ public interface SepulchreConfig extends Config
 		name = "Projectile Border Width",
 		description = "",
 		section = COLOR_SECTION,
-		position = 10
+		position = 8
 	)
 	default int projectileBorderWidth()
 	{
@@ -470,7 +408,7 @@ public interface SepulchreConfig extends Config
 		name = "Lightning Fill Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 11
+		position = 9
 	)
 	default Color lightningFillColor()
 	{
@@ -483,7 +421,7 @@ public interface SepulchreConfig extends Config
 		name = "Lightning Border Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 12
+		position = 10
 	)
 	default Color lightningBorderColor()
 	{
@@ -496,7 +434,7 @@ public interface SepulchreConfig extends Config
 		name = "Crossbow Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 13
+		position = 11
 	)
 	default Color crossbowColor()
 	{
@@ -509,7 +447,7 @@ public interface SepulchreConfig extends Config
 		name = "Crossbow Border Color",
 		description = "Border color for crossbowmen highlights",
 		section = COLOR_SECTION,
-		position = 15
+		position = 12
 	)
 	default Color crossbowBorderColor()
 	{
@@ -522,7 +460,7 @@ public interface SepulchreConfig extends Config
 		name = "Crossbow Border Width",
 		description = "Border width for active crossbowmen highlights",
 		section = COLOR_SECTION,
-		position = 17
+		position = 13
 	)
 	default int crossbowBorderWidth()
 	{
@@ -535,7 +473,7 @@ public interface SepulchreConfig extends Config
 		name = "Yellow Portal Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 19
+		position = 14
 	)
 	default Color portalYellowColor()
 	{
@@ -548,7 +486,7 @@ public interface SepulchreConfig extends Config
 		name = "Blue Portal Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 20
+		position = 15
 	)
 	default Color portalBlueColor()
 	{
@@ -561,7 +499,7 @@ public interface SepulchreConfig extends Config
 		name = "Obelisk Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 21
+		position = 16
 	)
 	default Color obeliskColor()
 	{
@@ -574,7 +512,7 @@ public interface SepulchreConfig extends Config
 		name = "Coffin Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 22
+		position = 17
 	)
 	default Color coffinColor()
 	{
@@ -587,7 +525,7 @@ public interface SepulchreConfig extends Config
 		name = "Skill Obstacle Color",
 		description = "",
 		section = COLOR_SECTION,
-		position = 23
+		position = 18
 	)
 	default Color skillObstacleColor()
 	{
@@ -600,7 +538,7 @@ public interface SepulchreConfig extends Config
 		name = "Missing Requirements Color",
 		description = "Color for skill obstacles when missing required items/levels",
 		section = COLOR_SECTION,
-		position = 24
+		position = 19
 	)
 	default Color skillObstacleMissingReqColor()
 	{
@@ -613,7 +551,7 @@ public interface SepulchreConfig extends Config
 		name = "Navigation Color",
 		description = "Color for stairs, platforms, and gates",
 		section = COLOR_SECTION,
-		position = 25
+		position = 20
 	)
 	default Color navigationColor()
 	{

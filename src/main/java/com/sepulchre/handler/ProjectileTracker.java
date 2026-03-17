@@ -157,26 +157,6 @@ public class ProjectileTracker
 		return false;
 	}
 
-	public int getBluePortalRemainingTicks(WorldPoint location)
-	{
-		return getPortalRemainingTicks(location, activeBluePortals);
-	}
-
-	public int getYellowPortalRemainingTicks(WorldPoint location)
-	{
-		return getPortalRemainingTicks(location, activeYellowPortals);
-	}
-
-	private int getPortalRemainingTicks(WorldPoint location, Set<WorldPoint> activePortals)
-	{
-		if (!activePortals.contains(location))
-		{
-			return -1;
-		}
-		Integer remaining = activePortalGraphics.get(location);
-		return remaining != null ? remaining : -1;
-	}
-
 	public void saveProjectileNpcs()
 	{
 		savedSwordNpcs.clear();

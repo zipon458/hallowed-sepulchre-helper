@@ -2,7 +2,6 @@ package com.sepulchre.handler;
 
 import com.sepulchre.config.SepulchreConfig;
 import com.sepulchre.model.CrossbowStatue;
-import com.sepulchre.model.WizardCyclePhaseTracker;
 import com.sepulchre.model.LightningStrike;
 import com.sepulchre.model.SepulchreRoute;
 import com.sepulchre.model.SwordStatue;
@@ -31,7 +30,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @Singleton
@@ -93,9 +91,6 @@ public class ObstacleHandler
 
 	@Getter
 	private final SkillObstacleManager skillObstacleManager;
-
-	@Getter
-	private final WizardCyclePhaseTracker wizardCyclePhaseTracker = new WizardCyclePhaseTracker();
 
 	@Getter
 	private final FloorState floorState;
@@ -216,39 +211,14 @@ public class ObstacleHandler
 		return projectileTracker.getActiveBluePortals();
 	}
 
-	public Map<WorldPoint, Integer> getActivePortalGraphics()
-	{
-		return projectileTracker.getActivePortalGraphics();
-	}
-
 	public int getPlayerImmunityTicks()
 	{
 		return projectileTracker.getPlayerImmunityTicks();
 	}
 
-	public int getBluePortalRemainingTicks(WorldPoint location)
-	{
-		return projectileTracker.getBluePortalRemainingTicks(location);
-	}
-
-	public int getYellowPortalRemainingTicks(WorldPoint location)
-	{
-		return projectileTracker.getYellowPortalRemainingTicks(location);
-	}
-
 	public boolean isPlayerImmune()
 	{
 		return projectileTracker.isPlayerImmune();
-	}
-
-	public String getFloor4CycleDisplayText()
-	{
-		return wizardCyclePhaseTracker.getDisplayText();
-	}
-
-	public int getFloor4CurrentCycle()
-	{
-		return wizardCyclePhaseTracker.getCurrentCycle();
 	}
 
 	public void onDoorToNextFloorClosed()
@@ -339,7 +309,6 @@ public class ObstacleHandler
 		gates.clear();
 		skillObstacleManager.reset();
 		floorState.reset();
-		wizardCyclePhaseTracker.reset();
 	}
 
 	public void scanForExistingGroundObjects()
@@ -417,11 +386,6 @@ public class ObstacleHandler
 		for (SwordStatue sword : swordStatues)
 		{
 			sword.onGameTick();
-		}
-
-		if (floorState.getCurrentFloor() == 4)
-		{
-			wizardCyclePhaseTracker.onGameTick(wizardStatues);
 		}
 
 		projectileTracker.onGameTick();
