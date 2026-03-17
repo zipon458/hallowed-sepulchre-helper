@@ -2,7 +2,6 @@ package com.sepulchre.overlay;
 
 import com.sepulchre.SepulchrePlugin;
 import com.sepulchre.config.HighlightStyle;
-import com.sepulchre.config.PortalDisplayMode;
 import com.sepulchre.config.SepulchreConfig;
 import com.sepulchre.handler.ObstacleHandler;
 import com.sepulchre.model.CrossbowStatue;
@@ -19,7 +18,6 @@ import net.runelite.api.NPCComposition;
 import net.runelite.api.ObjectComposition;
 import net.runelite.api.Perspective;
 import net.runelite.api.Player;
-import net.runelite.api.Point;
 import net.runelite.api.TileObject;
 import net.runelite.api.WallObject;
 import net.runelite.api.coords.LocalPoint;
@@ -29,7 +27,6 @@ import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
-import net.runelite.client.ui.overlay.OverlayUtil;
 
 import javax.inject.Inject;
 import java.awt.BasicStroke;
@@ -103,7 +100,6 @@ public class SepulchreSceneOverlay extends Overlay
 		renderLightning(graphics, playerPlane);
 		renderCrossbowStatues(graphics, playerPlane);
 		renderWizardStatues(graphics, playerPlane);
-		renderSwordStatues(graphics, playerPlane);
 		renderBoltNpcs(graphics, playerPlane);
 		renderSwordNpcs(graphics, playerPlane);
 		renderPortals(graphics, playerPlane);
@@ -330,15 +326,13 @@ public class SepulchreSceneOverlay extends Overlay
 
 	private void renderWizardStatues(Graphics2D graphics, int playerPlane)
 	{
-		boolean showTickCounter = config.wizardTickCounter();
-		boolean showDanger = config.showDanger();
-		boolean showWarning = config.showWarning();
-
-		if (!showTickCounter && !showDanger && !showWarning)
+		if (!config.showDanger())
 		{
 			return;
 		}
 
+		Color color = config.dangerColor();
+		Color borderColor = getDangerBorderColor(color);
 		Stroke dangerStroke = getDangerBorderStroke();
 
 		for (WizardStatue statue : obstacleHandler.getWizardStatues())
@@ -359,35 +353,10 @@ public class SepulchreSceneOverlay extends Overlay
 				continue;
 			}
 
-			if (statue.isSafe())
+			if (!statue.isFiring())
 			{
 				continue;
 			}
-
-			boolean isFiring = statue.isFiring();
-			Color color = isFiring ? config.dangerColor() : config.warningColor();
-
-			if (showTickCounter)
-			{
-				String tickDisplay = statue.getDisplayTicks();
-				LocalPoint statueLocal = statue.getGameObject().getLocalLocation();
-				if (statueLocal != null)
-				{
-					Point textLocation = Perspective.getCanvasTextLocation(client, graphics, statueLocal, tickDisplay, 0);
-					if (textLocation != null)
-					{
-						OverlayUtil.renderTextLocation(graphics, textLocation, tickDisplay, color);
-					}
-				}
-			}
-
-			boolean shouldShowTiles = (isFiring && showDanger) || (!isFiring && showWarning);
-			if (!shouldShowTiles)
-			{
-				continue;
-			}
-
-			Color borderColor = getDangerBorderColor(color);
 
 			for (WorldPoint fireTile : statue.getFireTiles())
 			{
@@ -395,74 +364,6 @@ public class SepulchreSceneOverlay extends Overlay
 				if (poly != null)
 				{
 					renderTilePolygon(graphics, poly, color, borderColor, dangerStroke);
-				}
-			}
-		}
-	}
-
-	private void renderSwordStatues(Graphics2D graphics, int playerPlane)
-	{
-		boolean showTickCounter = config.knightTickCounter();
-		boolean showDanger = config.showDanger();
-		boolean showWarning = config.showWarning();
-
-		if (!showTickCounter && !showDanger && !showWarning)
-		{
-			return;
-		}
-
-		Stroke dangerStroke = getDangerBorderStroke();
-
-		for (SwordStatue statue : obstacleHandler.getSwordStatues())
-		{
-			GameObject statueObj = statue.getGameObject();
-			if (statueObj.getWorldLocation().getPlane() != playerPlane)
-			{
-				continue;
-			}
-
-			if (!obstacleHandler.shouldShowForCurrentRoute(statueObj.getLocalLocation()))
-			{
-				continue;
-			}
-
-			if (!statue.isInDangerousState())
-			{
-				continue;
-			}
-
-			boolean isImminent = statue.isInImminentDangerState();
-			Color fillColor = isImminent ? config.dangerColor() : config.warningColor();
-			Color borderColor = getDangerBorderColor(fillColor);
-
-			WorldPoint dangerCenter = statue.getDangerZoneCenter();
-			if (dangerCenter != null)
-			{
-				LocalPoint dangerLocal = LocalPoint.fromWorld(client, dangerCenter);
-				if (dangerLocal != null)
-				{
-					boolean shouldShowTiles = (isImminent && showDanger) || (!isImminent && showWarning);
-					if (shouldShowTiles)
-					{
-						Polygon poly = Perspective.getCanvasTileAreaPoly(client, dangerLocal, 3);
-						if (poly != null)
-						{
-							renderTilePolygon(graphics, poly, fillColor, borderColor, dangerStroke);
-						}
-					}
-
-					if (showTickCounter)
-					{
-						String tickDisplay = statue.getDisplayTicks();
-						if (tickDisplay != null)
-						{
-							Point textLocation = Perspective.getCanvasTextLocation(client, graphics, dangerLocal, tickDisplay, 0);
-							if (textLocation != null)
-							{
-								OverlayUtil.renderTextLocation(graphics, textLocation, tickDisplay, toOpaque(fillColor));
-							}
-						}
-					}
 				}
 			}
 		}
@@ -561,23 +462,20 @@ public class SepulchreSceneOverlay extends Overlay
 	{
 		renderPortalSet(graphics, playerPlane, obstacleHandler.getActiveYellowPortals(),
 			config.portalYellowColor(), getYellowPortalBorderColor(),
-			config.yellowPortalDisplay(), true);
+			config.highlightYellowPortals());
 
 		renderPortalSet(graphics, playerPlane, obstacleHandler.getActiveBluePortals(),
 			config.portalBlueColor(), getBluePortalBorderColor(),
-			config.bluePortalDisplay(), false);
+			config.highlightBluePortals());
 	}
 
 	private void renderPortalSet(Graphics2D graphics, int playerPlane, Set<WorldPoint> portals,
-		Color fillColor, Color borderColor, PortalDisplayMode displayMode, boolean isYellow)
+		Color fillColor, Color borderColor, boolean highlightPortals)
 	{
-		if (displayMode == PortalDisplayMode.NONE)
+		if (!highlightPortals)
 		{
 			return;
 		}
-
-		boolean showTile = displayMode.showTile();
-		boolean showCountdown = displayMode.showCountdown();
 
 		for (WorldPoint portalLocation : portals)
 		{
@@ -592,31 +490,7 @@ public class SepulchreSceneOverlay extends Overlay
 				continue;
 			}
 
-			if (showTile)
-			{
-				renderTilePolygon(graphics, poly, fillColor, borderColor, DEFAULT_STROKE);
-			}
-
-			if (showCountdown)
-			{
-				int remainingTicks = isYellow
-					? obstacleHandler.getYellowPortalRemainingTicks(portalLocation)
-					: obstacleHandler.getBluePortalRemainingTicks(portalLocation);
-				if (remainingTicks > 0)
-				{
-					LocalPoint localPoint = LocalPoint.fromWorld(client, portalLocation);
-					if (localPoint != null)
-					{
-						String countdownText = String.valueOf(remainingTicks - 1);
-						Point textLocation = Perspective.getCanvasTextLocation(
-							client, graphics, localPoint, countdownText, 0);
-						if (textLocation != null)
-						{
-							OverlayUtil.renderTextLocation(graphics, textLocation, countdownText, borderColor);
-						}
-					}
-				}
-			}
+			renderTilePolygon(graphics, poly, fillColor, borderColor, DEFAULT_STROKE);
 		}
 	}
 
