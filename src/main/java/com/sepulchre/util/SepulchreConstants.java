@@ -19,7 +19,7 @@ public final class SepulchreConstants
 	public static final int VARBIT_HALLOWED_TIME_SPENT = 10393;
 	public static final int VARBIT_HALLOWED_CURRENT_FLOOR_TIME_SPENT = 10417;
 
-	public static final int[] FLOOR_AGILITY_REQUIREMENTS = {52, 62, 72, 82, 92};
+	public static final int[] FLOOR_AGILITY_REQUIREMENTS = {52, 62, 72, 77, 87};
 
 	private static final Map<Integer, Map<WorldPoint, SepulchreRoute>> SPAWN_TILES_BY_FLOOR = new HashMap<>();
 	static
